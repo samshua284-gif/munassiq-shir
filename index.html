@@ -144,19 +144,8 @@
     </div>
     <div class="actions">
       <button id="run">تنفيذ التنسيق</button>
-      <button class="ghost" id="saveImage">حفظ القصيدة كصورة</button>
-      <button class="ghost" id="copyText">نسخ النص المنسّق</button>
-      <button class="ghost" id="copyHtml">نسخ كود HTML</button>
     </div>
     <div id="msg"></div>
-    <p class="hint">تعليمات: إن كتبتَ كل بيتٍ في سطرٍ واحد فافصل شطرَيه بالفاصل «=» — وإن كتبتَ كل شطرٍ في سطرٍ مستقل
-      (صدرٌ في سطر وعجزٌ في السطر الذي يليه) فاترك «طريقة الكتابة» على التلقائي أو اختر «سطران لكل بيت»، وسيقرن المنسّق كل سطرين في بيتٍ واحد.
-      التنسيق الأفقي يمدّ الكلمات بحرف التطويل حتى تتساوى أطوال الأشطر، والتنسيق العمودي يجعل الصدور والأعجاز
-      تصطفّ في عمودين ثابتين من أول القصيدة إلى آخرها، فلا يبرز آخرُ بيتٍ عن أخيه.
-      ولاستخدامه كتطبيق على هاتفك: افتح هذه الصفحة من المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية» —
-      تصير له أيقونة على شاشتك، ويفتح بملء الشاشة، ويعمل بلا إنترنت.
-      وتنبيهٌ من التجربة: النصّ العادي المنسوخ لا يحفظ الأعمدة داخل مذكرة الهاتف، لأن خطوط الهاتف متفاوتة العرض فتنهار الموازاة —
-      أما زر «حفظ القصيدة كصورة» فيرسم الصدر موازياً للعجز رسمًا ثابتاً لا ينهار أينما لصقتَ الصورة أو شاركتَها.</p>
   </section>
 
   <div id="sheetBar" hidden>
@@ -450,9 +439,6 @@ function copyOf(getter, label){
 }
 
 document.getElementById("run").addEventListener("click", run);
-document.getElementById("saveImage").addEventListener("click", saveImage);
-document.getElementById("copyText").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
-document.getElementById("copyHtml").addEventListener("click", function(){ copyOf(function(){ return lastHtml; }, "كود HTML"); });
 document.getElementById("fontSize").addEventListener("input", function(e){
   document.getElementById("fsVal").textContent = e.target.value;
 });
