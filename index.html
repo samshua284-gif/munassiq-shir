@@ -509,33 +509,58 @@ function buildRichHtml(){
   var out = '<div dir="rtl" style="background:' + BG + ';color:' + INK + ';font-family:' + FONT + ';font-size:' + px + 'px;padding:24px;border-radius:12px">';
   if (title) out += '<p style="text-align:right;font-weight:bold;font-size:' + Math.round(px * 1.25) + 'px;margin:0 0 4px">' + escHtml(title) + '</p>';
   if (poet)  out += '<p style="text-align:right;color:' + (POETC ? POETC : INK) + ';font-size:' + Math.round(px * 0.7) + 'px;margin:0 0 14px">شعر: ' + escHtml(poet) + '</p>';
-  // الأبيات فقرة واحدة مضبوطة (justify): التطبيق المضيف يوزّع الكلمات بخطّه هو فتتساوى الأسطر في أيّ خطّ — كالنموذج الذي أراه هلال من رواسي
-  var lines = [];
+  // كلمات متباعدة: كل شطر سطرٌ مستقل، وبين كل سطرين فراغ، والنهايات متساوية بمسافات موزعة بين الكلمات
+  var spaced = [];
   lastVerses.forEach(function(v){
     if (v.single || lastShape === "one"){
-      lines.push(escHtml(v.single ? v.single : (v.sadr + "  " + v.ajuz)));
-    } else { lines.push(escHtml(v.sadr)); lines.push(escHtml(v.ajuz)); }
+      spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
+    } else { spaced.push(spaceOut(v.sadr, th)); spaced.push(spaceOut(v.ajuz, th)); }
   });
-  out += '<p style="margin:0;text-align:justify;line-height:1.9">' + lines.join('<br>') + '</p>';
+  window.__spacedPlain = spaced.join("\n\n");
+  spaced.forEach(function(ln){
+    out += '<p style="margin:0 0 1.1em;text-align:right">' + escHtml(ln) + '</p>';
+  });
   out += '</div>';
+  return out;
+}
+
+// «كلمات متباعدة»: توزيع النقص مسافاتٍ بين الكلمات حتى تتساوى نهايات الأسطر — طريقة رواسي الثانية
+function spaceOut(text, target){
+  var words = text.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return stretch(text, target);
+  var cur = measure(words.join(" "));
+  var spaceW = measure(" ") || 1;
+  var deficit = target - cur;
+  if (deficit <= 0) return words.join(" ");
+  var gaps = words.length - 1;
+  var total = Math.round(deficit / spaceW);
+  if (total < 1) return words.join(" ");
+  if (total > gaps * 6) total = gaps * 6;
+  var per = Math.floor(total / gaps), rem = total - per * gaps;
+  var out = words[0];
+  for (var i = 1; i < words.length; i++){
+    var n = 1 + per + (i <= rem ? 1 : 0);
+    out += Array(n + 1).join(" ") + words[i];
+  }
   return out;
 }
 
 function copyRich(){
   if (!lastVerses){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
   function plainFallback(){
+    var txt = window.__spacedPlain || lastPlain;
     if (navigator.clipboard && navigator.clipboard.writeText)
-      navigator.clipboard.writeText(lastPlain).then(function(){ say("نُسخ النصّ مجردًا — هذا التطبيق لا يقبل التنسيق."); }, function(){ say("تعذّر النسخ."); });
+      navigator.clipboard.writeText(txt).then(function(){ say("نُسخ النصّ مجردًا — هذا التطبيق لا يقبل التنسيق."); }, function(){ say("تعذّر النسخ."); });
     else say("النسخ غير متاح في هذا المتصفح.");
   }
   if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem){
     try {
       var item = new ClipboardItem({
         "text/html": new Blob([buildRichHtml()], { type: "text/html" }),
-        "text/plain": new Blob([lastPlain], { type: "text/plain" })
+        "text/plain": new Blob([window.__spacedPlain || lastPlain], { type: "text/plain" })
       });
       navigator.clipboard.write([item]).then(function(){
-        say("نُسخ النصّ بتنسيقه — حجمه الذي اخترتَه وألوانه وعموداه؛ يظهر كاملًا حيث يُقبل اللصق المنسّق.");
+        say("نُسخ النصّ بكلمات متباعدة ونهايات متساوية — يظهر كاملًا حيث يُقبل اللصق المنسّق.");
       }, plainFallback);
     } catch (e) { plainFallback(); }
   } else plainFallback();
