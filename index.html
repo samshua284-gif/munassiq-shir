@@ -606,6 +606,14 @@ function spaceOut(text, target){
 
 function copyRich(){
   if (!lastVerses){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
+  buildRichHtml();  // يملأ __spacedPlain عند طريقة التباعد
+  if (lastMethod === "spaced" && window.__spacedPlain && navigator.clipboard && navigator.clipboard.writeText){
+    // التباعد يُنسخ نصًّا مجرّدًا: المذكرات تسحق فراغات HTML ومسافاته، والنصّ المجرّد يمرّ كما هو — كطريقة رواسي
+    navigator.clipboard.writeText(window.__spacedPlain).then(function(){
+      say("نُسخ النصّ متباعدًا كما تراه — سطر وفراغ وسطر، بنهايات متساوية.");
+    }, function(){ say("تعذّر النسخ."); });
+    return;
+  }
   function plainFallback(){
     var txt = window.__spacedPlain || lastPlain;
     if (navigator.clipboard && navigator.clipboard.writeText)
