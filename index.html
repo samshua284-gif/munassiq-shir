@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1419">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>منسّق الشعر — تناسق أفقي وعمودي للأبيات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171e26; --panel2:#1d2631; --line:#2c3947;
+    --ink:#e8e2d4; --muted:#9aa7b4; --gold:#c9a227; --gold2:#e6c65c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Amiri","Scheherazade New","Traditional Arabic",serif;}
+  header{text-align:center;padding:28px 16px 6px}
+  header h1{margin:0;font-size:34px;color:var(--gold2)}
+  header p{margin:6px 0 0;color:var(--muted);font-size:16px}
+  main{max-width:880px;margin:0 auto;padding:18px 16px 40px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+  label{display:block;font-size:15px;color:var(--muted);margin:10px 0 5px}
+  input[type=text],select,textarea{
+    width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:10px 12px;font-family:inherit;font-size:17px}
+  textarea{min-height:150px;line-height:2;resize:vertical}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:150px}
+  input[type=range]{width:100%}
+  button{
+    background:var(--gold);color:#191203;border:0;border-radius:10px;cursor:pointer;
+    font-family:inherit;font-size:18px;font-weight:700;padding:11px 26px}
+  button.ghost{background:transparent;color:var(--gold2);border:1px solid var(--gold)}
+  button:active{transform:translateY(1px)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .hint{font-size:13.5px;color:var(--muted);line-height:1.9}
+  /* صفحة القصيدة */
+  #sheet{background:#fdfaf2;color:#1c1a15;border-radius:12px;padding:34px 30px 28px;
+    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  #sheet .ptitle{text-align:center;font-size:27px;font-weight:700;margin:0 0 2px}
+  #sheet .ppoet{text-align:center;font-size:16.5px;color:#6b6252;margin:0 0 20px}
+  .verse{display:flex;align-items:stretch;margin:0 auto}
+  .half{flex:1;white-space:nowrap;text-align:center;padding:1px 6px}
+  .half.sadr{border-left:1px solid #d8cfb8}
+  .verse.single .half{border-left:0}
+  footer{text-align:center;color:var(--muted);font-size:13.5px;padding:0 16px 26px;line-height:2}
+  #msg{font-size:14.5px;color:var(--gold2);min-height:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>منسّق الشعر</h1>
+  <p>تناسق أفقي وعمودي لأبيات الشعر — صدْرٌ وعجُزٌ في عمودين متساويين، وكلمات ممتدّة حتى تستوي الأطراف</p>
+</header>
+<main>
+  <section class="card">
+    <div class="row">
+      <div>
+        <label for="poemTitle">عنوان القصيدة (اختياري)</label>
+        <input type="text" id="poemTitle" placeholder="مثال: سرمد الليل">
+      </div>
+      <div>
+        <label for="poetName">اسم الشاعر (اختياري)</label>
+        <input type="text" id="poetName" value="هلال سمير">
+      </div>
+    </div>
+    <label for="poemText">اكتب القصيدة هنا — بيتٌ في كل سطر، وافصل شطرَي البيت بالفاصل</label>
+    <textarea id="poemText">في سرمد الليل تنهشني الذياب = ولا حلَّ صبحي كنها شمسي تغيب</textarea>
+    <div class="row">
+      <div>
+        <label for="sep">الفاصل بين الشطرين</label>
+        <input type="text" id="sep" value="=" maxlength="3">
+      </div>
+      <div>
+        <label for="shape">الشكل</label>
+        <select id="shape">
+          <option value="two" selected>عمودان (صدر وعجز)</option>
+          <option value="one">عمود واحد</option>
+        </select>
+      </div>
+      <div>
+        <label for="method">كيفية التنسيق</label>
+        <select id="method">
+          <option value="tatweel" selected>كلمات ممتدّة (تطويل)</option>
+          <option value="plain">محاذاة فقط بلا تطويل</option>
+        </select>
+      </div>
+      <div>
+        <label for="fontSize">حجم الخط: <span id="fsVal">24</span></label>
+        <input type="range" id="fontSize" min="16" max="40" value="24">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="run">تنفيذ التنسيق</button>
+      <button class="ghost" id="copyText">نسخ النص المنسّق</button>
+      <button class="ghost" id="copyHtml">نسخ كود HTML</button>
+    </div>
+    <div id="msg"></div>
+    <p class="hint">تعليمات: افصل شطرَي البيت بالفاصل «=» — أما إذا كان البيت من شطرٍ واحد فلا تستخدم الفاصل.
+      التنسيق الأفقي يمدّ الكلمات بحرف التطويل حتى تتساوى أطوال الأشطر، والتنسيق العمودي يجعل الصدور والأعجاز
+      تصطفّ في عمودين ثابتين من أول القصيدة إلى آخرها، فلا يبرز آخرُ بيتٍ عن أخيه.
+      ولاستخدامه كتطبيق على هاتفك: افتح هذه الصفحة من المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية» —
+      تصير له أيقونة على شاشتك، ويفتح بملء الشاشة، ويعمل بلا إنترنت.</p>
+  </section>
+
+  <section id="sheet" hidden>
+    <p class="ptitle" id="outTitle"></p>
+    <p class="ppoet" id="outPoet"></p>
+    <div id="outBody"></div>
+  </section>
+</main>
+<footer>
+  منسّق الشعر © هلال سمير — قالب مستقلّ لتنسيق الأبيات بتناسقٍ أفقي وعمودي.
+</footer>
+
+<script>
+"use strict";
+var TATWEEL = "\u0640";
+// حروف لا تصل ما بعدها (لا يصح التطويل بعدها)
+var NON_CONN_NEXT = {};
+"اأإآدذرزژوؤةىء".split("").forEach(function(c){ NON_CONN_NEXT[c]=true; });
+var ARABIC = /[\u0621-\u064A]/;
+
+var measureCtx = document.createElement("canvas").getContext("2d");
+function setMeasureFont(px){
+  measureCtx.font = px + 'px "Amiri","Scheherazade New","Traditional Arabic",serif';
+}
+function measure(s){ return measureCtx.measureText(s).width; }
+
+// مدّ النص بحروف التطويل الموزّعة على مواضع الاتصال حتى يبلغ العرض الهدف
+function stretch(text, target){
+  var chars = text.split("");
+  var counts = chars.map(function(){ return 0; });
+  var elig = chars.map(function(ch, i){
+    if (i >= chars.length - 1) return false;
+    var nx = chars[i+1];
+    if (ch === " " || nx === " " || ch === TATWEEL || nx === TATWEEL) return false;
+    if (NON_CONN_NEXT[ch]) return false;
+    return ARABIC.test(ch) && ARABIC.test(nx);
+  });
+  function build(){
+    return chars.map(function(c, i){ return c + TATWEEL.repeat(counts[i]); }).join("");
+  }
+  var s = build(), w = measure(s), rounds = 0;
+  while (w < target - 1 && rounds < 200){
+    var any = false;
+    for (var i = 0; i < chars.length; i++){
+      if (!elig[i]) continue;
+      counts[i]++; any = true;
+      s = build(); w = measure(s);
+      if (w >= target - 1) break;
+    }
+    if (!any) break;
+    rounds++;
+  }
+  return s;
+}
+
+var lastPlain = "";   // النص المنسق للنسخ
+var lastHtml  = "";   // كود HTML للنسخ
+
+function run(){
+  var sep = document.getElementById("sep").value || "=";
+  var shape = document.getElementById("shape").value;
+  var method = document.getElementById("method").value;
+  var px = parseInt(document.getElementById("fontSize").value, 10);
+  setMeasureFont(px);
+
+  var lines = document.getElementById("poemText").value
+    .split("\n").map(function(l){ return l.trim(); })
+    .filter(function(l){ return l.length > 0; });
+
+  // تقسيم الأبيات إلى أشطر
+  var verses = lines.map(function(l){
+    var idx = l.indexOf(sep);
+    if (idx === -1) return { single: l };
+    return { sadr: l.slice(0, idx).trim(), ajuz: l.slice(idx + sep.length).trim() };
+  });
+
+  // العرض الهدف: أعرض شطر في القصيدة (تناسق أفقي وعمودي معاً)
+  var targetHalf = 0, targetFull = 0;
+  verses.forEach(function(v){
+    if (v.single){ targetFull = Math.max(targetFull, measure(v.single)); }
+    else {
+      targetHalf = Math.max(targetHalf, measure(v.sadr), measure(v.ajuz));
+    }
+  });
+  if (targetHalf === 0) targetHalf = targetFull / 2;
+
+  var body = document.getElementById("outBody");
+  body.innerHTML = "";
+  var plainLines = [];
+
+  verses.forEach(function(v){
+    var row = document.createElement("div");
+    row.className = "verse";
+    row.style.fontSize = px + "px";
+    row.style.lineHeight = "2";
+    if (v.single){
+      row.classList.add("single");
+      var only = (method === "tatweel") ? stretch(v.single, Math.max(targetFull, targetHalf * 2)) : v.single;
+      var d = document.createElement("div");
+      d.className = "half"; d.textContent = only;
+      row.appendChild(d);
+      plainLines.push(only);
+    } else if (shape === "one"){
+      var joined = v.sadr + "  " + v.ajuz;
+      var one = (method === "tatweel") ? stretch(joined, Math.max(targetFull, targetHalf * 2)) : joined;
+      row.classList.add("single");
+      var d1 = document.createElement("div");
+      d1.className = "half"; d1.textContent = one;
+      row.appendChild(d1);
+      plainLines.push(one);
+    } else {
+      var s = (method === "tatweel") ? stretch(v.sadr, targetHalf) : v.sadr;
+      var a = (method === "tatweel") ? stretch(v.ajuz, targetHalf) : v.ajuz;
+      var ds = document.createElement("div");
+      ds.className = "half sadr"; ds.textContent = s;
+      var da = document.createElement("div");
+      da.className = "half"; da.textContent = a;
+      row.appendChild(ds); row.appendChild(da);
+      plainLines.push(s + "   " + a);
+    }
+    body.appendChild(row);
+  });
+
+  var title = document.getElementById("poemTitle").value.trim();
+  var poet  = document.getElementById("poetName").value.trim();
+  document.getElementById("outTitle").textContent = title;
+  document.getElementById("outPoet").textContent  = poet ? "شعر: " + poet : "";
+  document.getElementById("sheet").hidden = false;
+
+  lastPlain = (title ? title + "\n" : "") + plainLines.join("\n") + (poet ? "\n— " + poet : "");
+  lastHtml  = document.getElementById("sheet").outerHTML;
+  say("تمّ التنسيق: " + verses.length + " بيتاً بعرضٍ واحد.");
+}
+
+function say(t){ document.getElementById("msg").textContent = t; }
+function copyOf(getter, label){
+  var t = getter();
+  if (!t){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ say("نُسخ " + label + " — الصقه حيث تشاء."); },
+      function(){ say("تعذّر النسخ التلقائي."); });
+  } else { say("النسخ التلقائي غير متاح في هذا المتصفح."); }
+}
+
+document.getElementById("run").addEventListener("click", run);
+document.getElementById("copyText").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
+document.getElementById("copyHtml").addEventListener("click", function(){ copyOf(function(){ return lastHtml; }, "كود HTML"); });
+document.getElementById("fontSize").addEventListener("input", function(e){
+  document.getElementById("fsVal").textContent = e.target.value;
+});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ /* تُقاس الأعرض عند التنفيذ بخط الصفحة نفسه */ });
+if ("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+</script>
+</body>
+</html>
