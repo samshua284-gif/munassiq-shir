@@ -107,6 +107,7 @@
     </div>
     <div class="actions">
       <button id="run">تنفيذ التنسيق</button>
+      <button class="ghost" id="saveImage">حفظ القصيدة كصورة</button>
       <button class="ghost" id="copyText">نسخ النص المنسّق</button>
       <button class="ghost" id="copyHtml">نسخ كود HTML</button>
     </div>
@@ -116,7 +117,9 @@
       التنسيق الأفقي يمدّ الكلمات بحرف التطويل حتى تتساوى أطوال الأشطر، والتنسيق العمودي يجعل الصدور والأعجاز
       تصطفّ في عمودين ثابتين من أول القصيدة إلى آخرها، فلا يبرز آخرُ بيتٍ عن أخيه.
       ولاستخدامه كتطبيق على هاتفك: افتح هذه الصفحة من المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية» —
-      تصير له أيقونة على شاشتك، ويفتح بملء الشاشة، ويعمل بلا إنترنت.</p>
+      تصير له أيقونة على شاشتك، ويفتح بملء الشاشة، ويعمل بلا إنترنت.
+      وتنبيهٌ من التجربة: النصّ العادي المنسوخ لا يحفظ الأعمدة داخل مذكرة الهاتف، لأن خطوط الهاتف متفاوتة العرض فتنهار الموازاة —
+      أما زر «حفظ القصيدة كصورة» فيرسم الصدر موازياً للعجز رسمًا ثابتاً لا ينهار أينما لصقتَ الصورة أو شاركتَها.</p>
   </section>
 
   <section id="sheet" hidden>
@@ -174,6 +177,7 @@ function stretch(text, target){
 
 var lastPlain = "";   // النص المنسق للنسخ
 var lastHtml  = "";   // كود HTML للنسخ
+var lastVerses = null, lastShape = "two", lastMethod = "tatweel";  // آخر قصيدة منسّقة — لرسم الصورة
 
 function run(){
   var sep = document.getElementById("sep").value || "=";
@@ -274,10 +278,98 @@ function run(){
 
   lastPlain = (title ? title + "\n" : "") + plainLines.join("\n") + (poet ? "\n— " + poet : "");
   lastHtml  = document.getElementById("sheet").outerHTML;
+  lastVerses = verses; lastShape = shape; lastMethod = method;
   say("تمّ التنسيق: " + verses.length + " بيتاً بعرضٍ واحد.");
 }
 
 function say(t){ document.getElementById("msg").textContent = t; }
+
+// رسم القصيدة صورةً: الصدر في العمود الأيمن موازياً للعجز في الأيسر، بعرضٍ واحد لا ينهار عند اللصق
+function saveImage(){
+  if (!lastVerses){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
+  var title = document.getElementById("poemTitle").value.trim();
+  var poet  = document.getElementById("poetName").value.trim();
+  var W = 1080, pad = 72, gap = 44;
+  var px = 46;
+  function targets(){
+    var th = 0, tf = 0;
+    lastVerses.forEach(function(v){
+      if (v.single){ tf = Math.max(tf, measure(v.single)); }
+      else { th = Math.max(th, measure(v.sadr), measure(v.ajuz)); }
+    });
+    if (th === 0) th = tf / 2;
+    return { half: th, full: tf };
+  }
+  setMeasureFont(px);
+  var tg = targets();
+  var colW = (W - pad * 2 - gap) / 2;
+  while (tg.half > colW && px > 16){ px -= 2; setMeasureFont(px); tg = targets(); }
+  var lh = Math.round(px * 2.05);
+  var headH = (title ? 92 : 8) + (poet ? 62 : 0) + 26;
+  var H = pad + headH + lastVerses.length * lh + 84;
+
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fdfaf2"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#1c1a15";
+  ctx.direction = "rtl";
+
+  var y = pad;
+  if (title){
+    ctx.font = "700 " + Math.round(px * 1.35) + 'px "Amiri","Traditional Arabic",serif';
+    ctx.textAlign = "center";
+    y += Math.round(px * 1.35);
+    ctx.fillText(title, W / 2, y);
+    y += 30;
+  }
+  if (poet){
+    ctx.font = Math.round(px * 0.72) + 'px "Amiri","Traditional Arabic",serif';
+    ctx.fillStyle = "#6b6252"; ctx.textAlign = "center";
+    y += Math.round(px * 0.72);
+    ctx.fillText("شعر: " + poet, W / 2, y);
+    ctx.fillStyle = "#1c1a15";
+    y += 22;
+  }
+  ctx.strokeStyle = "#d8cfb8"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(pad, y + 6); ctx.lineTo(W - pad, y + 6); ctx.stroke();
+  y += 26 + lh * 0.72;
+
+  ctx.font = px + 'px "Amiri","Traditional Arabic",serif';
+  lastVerses.forEach(function(v){
+    if (v.single || lastShape === "one"){
+      var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
+      var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
+      ctx.textAlign = "center";
+      ctx.fillText(out, W / 2, y);
+    } else {
+      var s = (lastMethod === "tatweel") ? stretch(v.sadr, tg.half) : v.sadr;
+      var a = (lastMethod === "tatweel") ? stretch(v.ajuz, tg.half) : v.ajuz;
+      ctx.textAlign = "right";  // الصدر: حافته اليمنى على حافة الصفحة
+      ctx.fillText(s, W - pad, y);
+      ctx.textAlign = "left";   // العجز: حافته اليسرى على الحافة المقابلة — وبالتطويل تتقابل الحافتان الداخليتان أيضاً
+      ctx.fillText(a, pad, y);
+    }
+    y += lh;
+  });
+
+  ctx.font = Math.round(px * 0.5) + 'px "Amiri","Traditional Arabic",serif';
+  ctx.fillStyle = "#9a8f78"; ctx.textAlign = "center";
+  ctx.fillText("نُسّقت بـ«منسّق الشعر»", W / 2, H - 30);
+
+  if (cv.toBlob){
+    cv.toBlob(function(blob){
+      var url = URL.createObjectURL(blob);
+      var aEl = document.createElement("a");
+      aEl.href = url; aEl.download = "qasida.png";
+      document.body.appendChild(aEl); aEl.click(); aEl.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      say("حُفظت القصيدة صورةً — أعمدتها موازية كما تراها، أينما لصقتَها أو شاركتَها.");
+    }, "image/png");
+  } else {
+    say("حفظ الصور غير متاح في هذا المتصفح.");
+  }
+}
 function copyOf(getter, label){
   var t = getter();
   if (!t){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
@@ -288,6 +380,7 @@ function copyOf(getter, label){
 }
 
 document.getElementById("run").addEventListener("click", run);
+document.getElementById("saveImage").addEventListener("click", saveImage);
 document.getElementById("copyText").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
 document.getElementById("copyHtml").addEventListener("click", function(){ copyOf(function(){ return lastHtml; }, "كود HTML"); });
 document.getElementById("fontSize").addEventListener("input", function(e){
