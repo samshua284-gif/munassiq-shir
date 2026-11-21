@@ -39,10 +39,14 @@
   .hint{font-size:13.5px;color:var(--muted);line-height:1.9}
   /* صفحة القصيدة */
   #sheet{background:#fdfaf2;color:#1c1a15;border-radius:12px;padding:34px 30px 28px;
-    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+    box-shadow:0 8px 30px rgba(0,0,0,.45);color-scheme:only light}
   #sheet .ptitle{text-align:center;font-size:27px;font-weight:700;margin:0 0 2px}
   #sheet .ppoet{text-align:center;font-size:16.5px;color:#6b6252;margin:0 0 20px}
   .verse{display:flex;align-items:stretch;margin:0 auto}
+  @media (max-width:560px){
+    #sheet{padding:22px 12px 18px}
+    .half{padding:1px 2px}
+  }
   .half{flex:1;white-space:nowrap;text-align:center;padding:1px 6px}
   .half.sadr{border-left:1px solid #d8cfb8}
   .verse.single .half{border-left:0}
@@ -71,6 +75,14 @@
     <textarea id="poemText">في سرمد الليل تنهشني الذياب = ولا حلَّ صبحي كنها شمسي تغيب</textarea>
     <div class="row">
       <div>
+        <label for="inputMode">طريقة كتابة القصيدة</label>
+        <select id="inputMode">
+          <option value="auto" selected>تلقائي — يكتشفها بنفسه</option>
+          <option value="lines2">سطران لكل بيت (صدر ثم عجز)</option>
+          <option value="sep">سطر لكل بيت وبين شطريه الفاصل</option>
+        </select>
+      </div>
+      <div>
         <label for="sep">الفاصل بين الشطرين</label>
         <input type="text" id="sep" value="=" maxlength="3">
       </div>
@@ -84,7 +96,7 @@
       <div>
         <label for="method">كيفية التنسيق</label>
         <select id="method">
-          <option value="tatweel" selected>كلمات ممتدّة (تطويل)</option>
+          <option value="tatweel" selected>كلمات ممتدّة — تناسق كامل</option>
           <option value="plain">محاذاة فقط بلا تطويل</option>
         </select>
       </div>
@@ -99,7 +111,8 @@
       <button class="ghost" id="copyHtml">نسخ كود HTML</button>
     </div>
     <div id="msg"></div>
-    <p class="hint">تعليمات: افصل شطرَي البيت بالفاصل «=» — أما إذا كان البيت من شطرٍ واحد فلا تستخدم الفاصل.
+    <p class="hint">تعليمات: إن كتبتَ كل بيتٍ في سطرٍ واحد فافصل شطرَيه بالفاصل «=» — وإن كتبتَ كل شطرٍ في سطرٍ مستقل
+      (صدرٌ في سطر وعجزٌ في السطر الذي يليه) فاترك «طريقة الكتابة» على التلقائي أو اختر «سطران لكل بيت»، وسيقرن المنسّق كل سطرين في بيتٍ واحد.
       التنسيق الأفقي يمدّ الكلمات بحرف التطويل حتى تتساوى أطوال الأشطر، والتنسيق العمودي يجعل الصدور والأعجاز
       تصطفّ في عمودين ثابتين من أول القصيدة إلى آخرها، فلا يبرز آخرُ بيتٍ عن أخيه.
       ولاستخدامه كتطبيق على هاتفك: افتح هذه الصفحة من المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية» —
@@ -173,22 +186,48 @@ function run(){
     .split("\n").map(function(l){ return l.trim(); })
     .filter(function(l){ return l.length > 0; });
 
-  // تقسيم الأبيات إلى أشطر
-  var verses = lines.map(function(l){
-    var idx = l.indexOf(sep);
-    if (idx === -1) return { single: l };
-    return { sadr: l.slice(0, idx).trim(), ajuz: l.slice(idx + sep.length).trim() };
-  });
+  // تقسيم الأبيات إلى أشطر — بفاصل، أو سطرين لكل بيت، أو كشف تلقائي
+  var mode = document.getElementById("inputMode").value;
+  var hasSep = lines.some(function(l){ return l.indexOf(sep) !== -1; });
+  var pairMode = (mode === "lines2") || (mode === "auto" && !hasSep && lines.length % 2 === 0);
+  var verses;
+  if (pairMode){
+    verses = [];
+    for (var i = 0; i + 1 < lines.length; i += 2)
+      verses.push({ sadr: lines[i], ajuz: lines[i+1] });
+    if (lines.length % 2 === 1)
+      verses.push({ single: lines[lines.length - 1] });
+  } else {
+    verses = lines.map(function(l){
+      var idx = l.indexOf(sep);
+      if (idx === -1) return { single: l };
+      return { sadr: l.slice(0, idx).trim(), ajuz: l.slice(idx + sep.length).trim() };
+    });
+  }
 
   // العرض الهدف: أعرض شطر في القصيدة (تناسق أفقي وعمودي معاً)
-  var targetHalf = 0, targetFull = 0;
-  verses.forEach(function(v){
-    if (v.single){ targetFull = Math.max(targetFull, measure(v.single)); }
-    else {
-      targetHalf = Math.max(targetHalf, measure(v.sadr), measure(v.ajuz));
-    }
-  });
-  if (targetHalf === 0) targetHalf = targetFull / 2;
+  function computeTargets(){
+    var th = 0, tf = 0;
+    verses.forEach(function(v){
+      if (v.single){ tf = Math.max(tf, measure(v.single)); }
+      else { th = Math.max(th, measure(v.sadr), measure(v.ajuz)); }
+    });
+    if (th === 0) th = tf / 2;
+    return { half: th, full: tf };
+  }
+  var tg = computeTargets();
+
+  // ملاءمة عرض الهاتف: صغّر الخط خطوةً خطوة حتى يستوي العمودان داخل الصفحة
+  var avail = Math.min(window.innerWidth, 912) - (window.innerWidth <= 560 ? 60 : 92);
+  function neededWidth(){
+    return (shape === "two") ? tg.half * 2 + 14 : Math.max(tg.full, tg.half * 2);
+  }
+  while (neededWidth() > avail && px > 10){
+    px -= 1;
+    setMeasureFont(px);
+    tg = computeTargets();
+  }
+  var targetHalf = tg.half, targetFull = tg.full;
 
   var body = document.getElementById("outBody");
   body.innerHTML = "";

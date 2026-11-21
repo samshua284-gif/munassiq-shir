@@ -1,5 +1,5 @@
 // عامل خدمة بسيط: يجعل المنسّق يعمل بلا إنترنت بعد أول فتح
-var CACHE = "munassiq-v1";
+var CACHE = "munassiq-v2";
 var ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", function(e){
