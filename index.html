@@ -453,6 +453,11 @@ function saveImage(MODE){
   ctx.fillStyle = blend(INK, BG, 0.5); ctx.textAlign = "center";
   ctx.fillText("نُسّقت بـ«منسّق الشعر»", W / 2, H - 30);
 
+  if (window.AndroidSave && AndroidSave.savePng){
+    AndroidSave.savePng(cv.toDataURL("image/png"));
+    say("حُفظت القصيدة صورةً — تجدها في الاستيديو (معرض الصور).");
+    return;
+  }
   if (cv.toBlob){
     cv.toBlob(function(blob){
       function download(){
@@ -504,20 +509,18 @@ function buildRichHtml(){
   var out = '<div dir="rtl" style="background:' + BG + ';color:' + INK + ';font-family:' + FONT + ';font-size:' + px + 'px;padding:24px;border-radius:12px">';
   if (title) out += '<p style="text-align:center;font-weight:bold;font-size:' + Math.round(px * 1.25) + 'px;margin:0 0 4px">' + escHtml(title) + '</p>';
   if (poet)  out += '<p style="text-align:center;color:' + (POETC ? POETC : INK) + ';font-size:' + Math.round(px * 0.7) + 'px;margin:0 0 14px">شعر: ' + escHtml(poet) + '</p>';
-  out += '<table style="width:100%;border-collapse:collapse;font-family:inherit;font-size:inherit;color:inherit">';
   lastVerses.forEach(function(v){
     if (v.single || lastShape === "one"){
       var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
       var t = (lastMethod === "tatweel") ? stretch(line, Math.max(tf, th * 2)) : line;
-      out += '<tr><td colspan="2" style="text-align:center;padding:2px 8px">' + escHtml(t) + '</td></tr>';
+      out += '<p style="margin:0 0 6px;text-align:center;white-space:pre-wrap">' + escHtml(t) + '</p>';
     } else {
       var s = (lastMethod === "tatweel") ? stretch(v.sadr, th) : v.sadr;
       var a = (lastMethod === "tatweel") ? stretch(v.ajuz, th) : v.ajuz;
-      out += '<tr><td style="width:50%;text-align:center;padding:2px 10px;border-left:1px solid ' + blend(INK, BG, 0.78) + '">' + escHtml(s) + '</td>' +
-             '<td style="width:50%;text-align:center;padding:2px 10px">' + escHtml(a) + '</td></tr>';
+      out += '<p style="margin:0 0 6px;text-align:center;white-space:pre">' + escHtml(s) + '    ' + escHtml(a) + '</p>';
     }
   });
-  out += '</table></div>';
+  out += '</div>';
   return out;
 }
 
