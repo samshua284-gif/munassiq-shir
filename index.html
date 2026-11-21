@@ -148,6 +148,16 @@
         <div class="swatches" id="inkSw"></div>
       </div>
     </div>
+    <div class="row">
+      <div>
+        <label>لون خطّ اسم الشاعر</label>
+        <div class="swatches" id="poetSw"></div>
+      </div>
+      <div>
+        <label for="poetCustom">اسم الشاعر بلونٍ من عندك</label>
+        <input type="color" id="poetCustom" value="#d4af37">
+      </div>
+    </div>
     <div class="actions">
       <button id="run">تنفيذ التنسيق</button>
     </div>
@@ -158,7 +168,6 @@
     <div class="sheet-tools">
       <div class="grp">
         <button id="saveImg">حفظ الصورة</button>
-        <button class="tool-ghost" id="dlImg">تحميل الصورة</button>
       </div>
       <button class="tool-ghost" id="copyText2">نسخ النص</button>
     </div>
@@ -182,6 +191,7 @@ var ARABIC = /[\u0621-\u064A]/;
 var measureCtx = document.createElement("canvas").getContext("2d");
 var FONT = "'Amiri','Traditional Arabic',serif";   // خطّ القصيدة المختار
 var BG = "#fdfaf2", INK = "#1c1a15";               // ألوان القصيدة المستخرجة
+var POETC = "";                                    // لون اسم الشاعر — فارغ يعني درجة مشتقة تلقائياً
 function setMeasureFont(px){
   measureCtx.font = px + "px " + FONT;
 }
@@ -195,7 +205,8 @@ function applySheetColors(){
   var sh = document.getElementById("sheet");
   sh.style.background = BG;
   sh.style.color = INK;
-  document.getElementById("outPoet").style.color = blend(INK, BG, 0.38);
+  document.getElementById("outPoet").style.color = POETC ? POETC : blend(INK, BG, 0.38);
+  if (POETC) document.getElementById("poetCustom").value = POETC;
   var sadrs = sh.querySelectorAll(".half.sadr");
   for (var i = 0; i < sadrs.length; i++) sadrs[i].style.borderLeftColor = blend(INK, BG, 0.78);
   document.getElementById("bgCustom").value = BG;
@@ -398,7 +409,7 @@ function saveImage(MODE){
   }
   if (poet){
     ctx.font = Math.round(px * 0.72) + "px " + FONT;
-    ctx.fillStyle = blend(INK, BG, 0.38); ctx.textAlign = "center";
+    ctx.fillStyle = POETC ? POETC : blend(INK, BG, 0.38); ctx.textAlign = "center";
     y += Math.round(px * 0.72);
     ctx.fillText("شعر: " + poet, W / 2, y);
     ctx.fillStyle = INK;
@@ -438,7 +449,7 @@ function saveImage(MODE){
         aEl.href = url; aEl.download = "qasida.png";
         document.body.appendChild(aEl); aEl.click(); aEl.remove();
         setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-        say("حُفظت القصيدة صورةً في تنزيلات هاتفك — أعمدتها موازية كما تراها.");
+        say("حُفظت القصيدة صورةً — تجدها في الاستيديو (معرض الصور) وفي تنزيلات هاتفك.");
       }
       if (MODE === "share" && navigator.canShare){
         var file = new File([blob], "qasida.png", { type: "image/png" });
@@ -495,6 +506,9 @@ function buildSwatches(elId, presets, cb){
 }
 buildSwatches("bgSw", BG_PRESETS, function(c){ BG = c; applySheetColors(); });
 buildSwatches("inkSw", INK_PRESETS, function(c){ INK = c; applySheetColors(); });
+var POET_PRESETS = ["#d4af37","#c9a227","#f5efe0","#a33b3b","#7aa2d6","#7fb069","#8a5a33","#e8e2d4"];
+buildSwatches("poetSw", POET_PRESETS, function(c){ POETC = c; applySheetColors(); });
+document.getElementById("poetCustom").addEventListener("input", function(e){ POETC = e.target.value; applySheetColors(); });
 document.getElementById("bgCustom").addEventListener("input", function(e){ BG = e.target.value; applySheetColors(); });
 document.getElementById("inkCustom").addEventListener("input", function(e){ INK = e.target.value; applySheetColors(); });
 document.getElementById("fontPick").addEventListener("change", function(e){
@@ -502,7 +516,6 @@ document.getElementById("fontPick").addEventListener("change", function(e){
   document.getElementById("sheet").style.fontFamily = FONT;
   if (lastVerses) run();  // القياس والتطويل يتبعان الخطّ الجديد
 });
-document.getElementById("dlImg").addEventListener("click", function(){ saveImage("download"); });
 document.getElementById("saveImg").addEventListener("click", function(){ saveImage("share"); });
 document.getElementById("copyText2").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
 applySheetColors();
