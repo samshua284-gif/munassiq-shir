@@ -112,6 +112,7 @@
         <label for="method">كيفية التنسيق</label>
         <select id="method">
           <option value="tatweel" selected>كلمات ممتدّة — تناسق كامل</option>
+          <option value="spaced">كلمات متباعدة — سطر وفراغ وسطر</option>
           <option value="plain">محاذاة فقط بلا تطويل</option>
         </select>
       </div>
@@ -299,6 +300,32 @@ function run(){
     var targetHalf = tg.half, targetFull = tg.full;
     body.innerHTML = "";
     plainLines = [];
+    if (method === "spaced"){
+      // كلمات متباعدة: كل شطر سطر مستقلّ بمسافات موزّعة بين كلماته، وبين الأسطر فراغ
+      var spTarget = verses.some(function(v){ return !v.single; }) ? targetHalf : targetFull;
+      var spLines = [];
+      verses.forEach(function(v){
+        if (v.single) spLines.push(v.single);
+        else { spLines.push(v.sadr); spLines.push(v.ajuz); }
+      });
+      spLines.forEach(function(ln, idx){
+        var row = document.createElement("div");
+        row.className = "verse single";
+        row.style.fontSize = p + "px";
+        row.style.lineHeight = "2";
+        if (idx > 0) row.style.marginTop = "0.9em";
+        var d = document.createElement("div");
+        d.className = "half";
+        d.style.whiteSpace = "pre";
+        d.style.textAlign = "right";
+        d.textContent = spaceOut(ln, spTarget);
+        row.appendChild(d);
+        body.appendChild(row);
+        plainLines.push(d.textContent);
+        plainLines.push("");
+      });
+      return;
+    }
     verses.forEach(function(v){
       var row = document.createElement("div");
       row.className = "verse";
@@ -337,7 +364,7 @@ function run(){
   setMeasureFont(px);
   var tg0 = computeTargets();
   var avail = Math.min(window.innerWidth, 912) - (window.innerWidth <= 560 ? 60 : 92);
-  while ((shape === "two" ? tg0.half * 2 + 14 : Math.max(tg0.full, tg0.half * 2)) > avail && px > 10){
+  while ((method === "spaced" ? Math.max(tg0.half, tg0.full) : (shape === "two" ? tg0.half * 2 + 14 : Math.max(tg0.full, tg0.half * 2))) > avail && px > 10){
     px -= 1;
     setMeasureFont(px);
     tg0 = computeTargets();
@@ -393,6 +420,8 @@ function saveImage(MODE){
   var tg = targets();
   // عرض الصورة يتّسع لحجم الخط المختار بدل تصغير الخط لحجمٍ ثابت — وسقف أمانٍ أخير عند 2600
   function neededW(){
+    if (lastMethod === "spaced")
+      return Math.ceil(pad * 2 + (lastVerses.some(function(v){ return !v.single; }) ? tg.half : tg.full));
     var twoW = Math.max(gap + tg.half * 2, tg.full);
     var oneW = Math.max(tg.full, tg.half * 2);
     return Math.ceil(pad * 2 + (lastShape === "two" ? twoW : oneW));
@@ -401,7 +430,10 @@ function saveImage(MODE){
   while (W > 2600 && px > 16){ px -= 2; setMeasureFont(px); tg = targets(); W = neededW(); }
   var lh = Math.round(px * 2.05);
   var headH = (title ? 92 : 8) + (poet ? 62 : 0) + 26;
-  var H = pad + headH + lastVerses.length * lh + 84;
+  var drawLines = lastVerses.length;
+  if (lastMethod === "spaced")
+    drawLines = lastVerses.reduce(function(n, v){ return n + (v.single ? 1 : 2); }, 0);
+  var H = pad + headH + drawLines * (lastMethod === "spaced" ? Math.round(lh * 1.9) : lh) + 84;
 
   function drawImage(){
   var cv = document.createElement("canvas");
@@ -432,7 +464,17 @@ function saveImage(MODE){
   y += 26 + lh * 0.72;
 
   ctx.font = px + "px " + FONT;
-  lastVerses.forEach(function(v){
+  if (lastMethod === "spaced"){
+    var spT = lastVerses.some(function(v){ return !v.single; }) ? tg.half : tg.full;
+    ctx.textAlign = "right";
+    lastVerses.forEach(function(v){
+      var ls = v.single ? [v.single] : [v.sadr, v.ajuz];
+      ls.forEach(function(ln){
+        ctx.fillText(spaceOut(ln, spT), W - pad, y);
+        y += Math.round(lh * 1.9);
+      });
+    });
+  } else lastVerses.forEach(function(v){
     if (v.single || lastShape === "one"){
       var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
       var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
@@ -509,17 +551,34 @@ function buildRichHtml(){
   var out = '<div dir="rtl" style="background:' + BG + ';color:' + INK + ';font-family:' + FONT + ';font-size:' + px + 'px;padding:24px;border-radius:12px">';
   if (title) out += '<p style="text-align:right;font-weight:bold;font-size:' + Math.round(px * 1.25) + 'px;margin:0 0 4px">' + escHtml(title) + '</p>';
   if (poet)  out += '<p style="text-align:right;color:' + (POETC ? POETC : INK) + ';font-size:' + Math.round(px * 0.7) + 'px;margin:0 0 14px">شعر: ' + escHtml(poet) + '</p>';
-  // كلمات متباعدة: كل شطر سطرٌ مستقل، وبين كل سطرين فراغ، والنهايات متساوية بمسافات موزعة بين الكلمات
-  var spaced = [];
-  lastVerses.forEach(function(v){
-    if (v.single || lastShape === "one"){
-      spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
-    } else { spaced.push(spaceOut(v.sadr, th)); spaced.push(spaceOut(v.ajuz, th)); }
-  });
-  window.__spacedPlain = spaced.join("\n\n");
-  spaced.forEach(function(ln){
-    out += '<p style="margin:0 0 1.1em;text-align:right">' + escHtml(ln) + '</p>';
-  });
+  if (lastMethod === "spaced"){
+    // كلمات متباعدة: كل شطر سطر، وبين الأسطر سطر فراغ حقيقي (لا هامشٌ ينهار عند اللصق)
+    var spaced = [];
+    lastVerses.forEach(function(v){
+      if (v.single || lastShape === "one"){
+        spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
+      } else { spaced.push(spaceOut(v.sadr, th)); spaced.push(spaceOut(v.ajuz, th)); }
+    });
+    window.__spacedPlain = spaced.join("\n\n");
+    spaced.forEach(function(ln, i){
+      if (i > 0) out += '<p style="margin:0;text-align:right">&nbsp;</p>';
+      out += '<p style="margin:0;text-align:right;white-space:pre-wrap">' + escHtml(ln) + '</p>';
+    });
+  } else {
+    window.__spacedPlain = null;
+    lastVerses.forEach(function(v){
+      if (v.single || lastShape === "one"){
+        var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
+        var t = (lastMethod === "tatweel") ? stretch(line, Math.max(tf, th * 2)) : line;
+        out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(t) + '</p>';
+      } else {
+        var s = (lastMethod === "tatweel") ? stretch(v.sadr, th) : v.sadr;
+        var a = (lastMethod === "tatweel") ? stretch(v.ajuz, th) : v.ajuz;
+        out += '<p style="margin:0 0 2px;text-align:right;white-space:pre-wrap">' + escHtml(s) + '</p>';
+        out += '<p style="margin:0 0 8px;text-align:right;white-space:pre-wrap">' + escHtml(a) + '</p>';
+      }
+    });
+  }
   out += '</div>';
   return out;
 }
@@ -560,7 +619,7 @@ function copyRich(){
         "text/plain": new Blob([window.__spacedPlain || lastPlain], { type: "text/plain" })
       });
       navigator.clipboard.write([item]).then(function(){
-        say("نُسخ النصّ بكلمات متباعدة ونهايات متساوية — يظهر كاملًا حيث يُقبل اللصق المنسّق.");
+        say("نُسخ النصّ بتنسيقه — يظهر كاملًا حيث يُقبل اللصق المنسّق.");
       }, plainFallback);
     } catch (e) { plainFallback(); }
   } else plainFallback();
