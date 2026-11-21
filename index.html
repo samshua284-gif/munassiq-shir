@@ -517,7 +517,8 @@ function buildRichHtml(){
     } else {
       var s = (lastMethod === "tatweel") ? stretch(v.sadr, th) : v.sadr;
       var a = (lastMethod === "tatweel") ? stretch(v.ajuz, th) : v.ajuz;
-      out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(s) + '    ' + escHtml(a) + '</p>';
+      out += '<p style="margin:0 0 2px;text-align:right;white-space:pre-wrap">' + escHtml(s) + '</p>';
+      out += '<p style="margin:0 0 8px;text-align:right;white-space:pre-wrap">' + escHtml(a) + '</p>';
     }
   });
   out += '</div>';
