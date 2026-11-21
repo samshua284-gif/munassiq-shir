@@ -509,18 +509,14 @@ function buildRichHtml(){
   var out = '<div dir="rtl" style="background:' + BG + ';color:' + INK + ';font-family:' + FONT + ';font-size:' + px + 'px;padding:24px;border-radius:12px">';
   if (title) out += '<p style="text-align:right;font-weight:bold;font-size:' + Math.round(px * 1.25) + 'px;margin:0 0 4px">' + escHtml(title) + '</p>';
   if (poet)  out += '<p style="text-align:right;color:' + (POETC ? POETC : INK) + ';font-size:' + Math.round(px * 0.7) + 'px;margin:0 0 14px">شعر: ' + escHtml(poet) + '</p>';
+  // الأبيات فقرة واحدة مضبوطة (justify): التطبيق المضيف يوزّع الكلمات بخطّه هو فتتساوى الأسطر في أيّ خطّ — كالنموذج الذي أراه هلال من رواسي
+  var lines = [];
   lastVerses.forEach(function(v){
     if (v.single || lastShape === "one"){
-      var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
-      var t = (lastMethod === "tatweel") ? stretch(line, Math.max(tf, th * 2)) : line;
-      out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(t) + '</p>';
-    } else {
-      var s = (lastMethod === "tatweel") ? stretch(v.sadr, th) : v.sadr;
-      var a = (lastMethod === "tatweel") ? stretch(v.ajuz, th) : v.ajuz;
-      out += '<p style="margin:0 0 2px;text-align:right;white-space:pre-wrap">' + escHtml(s) + '</p>';
-      out += '<p style="margin:0 0 8px;text-align:right;white-space:pre-wrap">' + escHtml(a) + '</p>';
-    }
+      lines.push(escHtml(v.single ? v.single : (v.sadr + "  " + v.ajuz)));
+    } else { lines.push(escHtml(v.sadr)); lines.push(escHtml(v.ajuz)); }
   });
+  out += '<p style="margin:0;text-align:justify;line-height:1.9">' + lines.join('<br>') + '</p>';
   out += '</div>';
   return out;
 }
