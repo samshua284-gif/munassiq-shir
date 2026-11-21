@@ -15,6 +15,7 @@
     --ink:#e8e2d4; --muted:#9aa7b4; --gold:#c9a227; --gold2:#e6c65c;
   }
   *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:"Amiri","Scheherazade New","Traditional Arabic",serif;}
   header{text-align:center;padding:28px 16px 6px}
@@ -39,9 +40,10 @@
   .hint{font-size:13.5px;color:var(--muted);line-height:1.9}
   /* صفحة القصيدة */
   #sheet{background:#fdfaf2;color:#1c1a15;border-radius:12px;padding:34px 30px 28px;
-    box-shadow:0 8px 30px rgba(0,0,0,.45);color-scheme:only light;
+    box-shadow:0 8px 30px rgba(0,0,0,.45);color-scheme:only light;overflow-x:auto;
     font-family:"Amiri","Traditional Arabic",serif}
-  .sheet-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .sheet-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .sheet-tools .grp{display:flex;gap:8px;flex-wrap:wrap}
   .sheet-tools button{font-size:15.5px;padding:8px 18px}
   .tool-ghost{background:transparent;border:1.5px solid currentColor;color:inherit;
     border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700}
@@ -53,12 +55,12 @@
     border-radius:8px;padding:4px;cursor:pointer}
   #sheet .ptitle{text-align:center;font-size:27px;font-weight:700;margin:0 0 2px}
   #sheet .ppoet{text-align:center;font-size:16.5px;color:#6b6252;margin:0 0 20px}
-  .verse{display:flex;align-items:stretch;margin:0 auto}
+  .verse{display:flex;align-items:stretch;margin:0 auto;width:100%}
   @media (max-width:560px){
     #sheet{padding:22px 12px 18px}
     .half{padding:1px 2px}
   }
-  .half{flex:1;white-space:nowrap;text-align:center;padding:1px 6px}
+  .half{flex:1;min-width:0;white-space:nowrap;text-align:center;padding:1px 6px}
   .half.sadr{border-left:1px solid #d8cfb8}
   .verse.single .half{border-left:0}
   footer{text-align:center;color:var(--muted);font-size:13.5px;padding:0 16px 26px;line-height:2}
@@ -154,7 +156,10 @@
 
   <section id="sheet">
     <div class="sheet-tools">
-      <button id="dlImg">تحميل الصورة</button>
+      <div class="grp">
+        <button id="saveImg">حفظ الصورة</button>
+        <button class="tool-ghost" id="dlImg">تحميل الصورة</button>
+      </div>
       <button class="tool-ghost" id="copyText2">نسخ النص</button>
     </div>
     <p class="ptitle" id="outTitle"></p>
@@ -271,56 +276,70 @@ function run(){
     if (th === 0) th = tf / 2;
     return { half: th, full: tf };
   }
-  var tg = computeTargets();
-
-  // ملاءمة عرض الهاتف: صغّر الخط خطوةً خطوة حتى يستوي العمودان داخل الصفحة
-  var avail = Math.min(window.innerWidth, 912) - (window.innerWidth <= 560 ? 60 : 92);
-  function neededWidth(){
-    return (shape === "two") ? tg.half * 2 + 14 : Math.max(tg.full, tg.half * 2);
-  }
-  while (neededWidth() > avail && px > 10){
-    px -= 1;
-    setMeasureFont(px);
-    tg = computeTargets();
-  }
-  var targetHalf = tg.half, targetFull = tg.full;
-
   var body = document.getElementById("outBody");
-  body.innerHTML = "";
   var plainLines = [];
 
-  verses.forEach(function(v){
-    var row = document.createElement("div");
-    row.className = "verse";
-    row.style.fontSize = px + "px";
-    row.style.lineHeight = "2";
-    if (v.single){
-      row.classList.add("single");
-      var only = (method === "tatweel") ? stretch(v.single, Math.max(targetFull, targetHalf * 2)) : v.single;
-      var d = document.createElement("div");
-      d.className = "half"; d.textContent = only;
-      row.appendChild(d);
-      plainLines.push(only);
-    } else if (shape === "one"){
-      var joined = v.sadr + "  " + v.ajuz;
-      var one = (method === "tatweel") ? stretch(joined, Math.max(targetFull, targetHalf * 2)) : joined;
-      row.classList.add("single");
-      var d1 = document.createElement("div");
-      d1.className = "half"; d1.textContent = one;
-      row.appendChild(d1);
-      plainLines.push(one);
-    } else {
-      var s = (method === "tatweel") ? stretch(v.sadr, targetHalf) : v.sadr;
-      var a = (method === "tatweel") ? stretch(v.ajuz, targetHalf) : v.ajuz;
-      var ds = document.createElement("div");
-      ds.className = "half sadr"; ds.textContent = s;
-      var da = document.createElement("div");
-      da.className = "half"; da.textContent = a;
-      row.appendChild(ds); row.appendChild(da);
-      plainLines.push(s + "   " + a);
-    }
-    body.appendChild(row);
-  });
+  function buildAt(p){
+    setMeasureFont(p);
+    var tg = computeTargets();
+    var targetHalf = tg.half, targetFull = tg.full;
+    body.innerHTML = "";
+    plainLines = [];
+    verses.forEach(function(v){
+      var row = document.createElement("div");
+      row.className = "verse";
+      row.style.fontSize = p + "px";
+      row.style.lineHeight = "2";
+      if (v.single){
+        row.classList.add("single");
+        var only = (method === "tatweel") ? stretch(v.single, Math.max(targetFull, targetHalf * 2)) : v.single;
+        var d = document.createElement("div");
+        d.className = "half"; d.textContent = only;
+        row.appendChild(d);
+        plainLines.push(only);
+      } else if (shape === "one"){
+        var joined = v.sadr + "  " + v.ajuz;
+        var one = (method === "tatweel") ? stretch(joined, Math.max(targetFull, targetHalf * 2)) : joined;
+        row.classList.add("single");
+        var d1 = document.createElement("div");
+        d1.className = "half"; d1.textContent = one;
+        row.appendChild(d1);
+        plainLines.push(one);
+      } else {
+        var s = (method === "tatweel") ? stretch(v.sadr, targetHalf) : v.sadr;
+        var a = (method === "tatweel") ? stretch(v.ajuz, targetHalf) : v.ajuz;
+        var ds = document.createElement("div");
+        ds.className = "half sadr"; ds.textContent = s;
+        var da = document.createElement("div");
+        da.className = "half"; da.textContent = a;
+        row.appendChild(ds); row.appendChild(da);
+        plainLines.push(s + "   " + a);
+      }
+      body.appendChild(row);
+    });
+  }
+
+  // تقدير أولي من عرض النافذة
+  setMeasureFont(px);
+  var tg0 = computeTargets();
+  var avail = Math.min(window.innerWidth, 912) - (window.innerWidth <= 560 ? 60 : 92);
+  while ((shape === "two" ? tg0.half * 2 + 14 : Math.max(tg0.full, tg0.half * 2)) > avail && px > 10){
+    px -= 1;
+    setMeasureFont(px);
+    tg0 = computeTargets();
+  }
+
+  buildAt(px);
+
+  // تصحيح بالقياس الحقيقي على المربعات نفسها: إن شذّ أي شطر عن مربعه صغّر الخط وأعد البناء حتى يستوي الكل بالداخل
+  function rowsOverflow(){
+    var hs = body.querySelectorAll(".half");
+    for (var i = 0; i < hs.length; i++)
+      if (hs[i].scrollWidth > hs[i].clientWidth + 1) return true;
+    return false;
+  }
+  var guard = 0;
+  while (rowsOverflow() && px > 10 && guard < 30){ px -= 1; buildAt(px); guard++; }
 
   var title = document.getElementById("poemTitle").value.trim();
   var poet  = document.getElementById("poetName").value.trim();
@@ -337,7 +356,8 @@ function run(){
 function say(t){ document.getElementById("msg").textContent = t; }
 
 // رسم القصيدة صورةً: الصدر في العمود الأيمن موازياً للعجز في الأيسر، بعرضٍ واحد لا ينهار عند اللصق
-function saveImage(){
+// MODE: ‏"share" يفتح قائمة الحفظ والمشاركة، و"download" ينزّل الملف مباشرة
+function saveImage(MODE){
   if (!lastVerses){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
   var title = document.getElementById("poemTitle").value.trim();
   var poet  = document.getElementById("poetName").value.trim();
@@ -412,12 +432,24 @@ function saveImage(){
 
   if (cv.toBlob){
     cv.toBlob(function(blob){
-      var url = URL.createObjectURL(blob);
-      var aEl = document.createElement("a");
-      aEl.href = url; aEl.download = "qasida.png";
-      document.body.appendChild(aEl); aEl.click(); aEl.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-      say("حُفظت القصيدة صورةً — أعمدتها موازية كما تراها، أينما لصقتَها أو شاركتَها.");
+      function download(){
+        var url = URL.createObjectURL(blob);
+        var aEl = document.createElement("a");
+        aEl.href = url; aEl.download = "qasida.png";
+        document.body.appendChild(aEl); aEl.click(); aEl.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        say("حُفظت القصيدة صورةً في تنزيلات هاتفك — أعمدتها موازية كما تراها.");
+      }
+      if (MODE === "share" && navigator.canShare){
+        var file = new File([blob], "qasida.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })){
+          navigator.share({ files: [file], title: "قصيدة منسّقة" }).catch(function(err){
+            if (err && err.name !== "AbortError") download();
+          });
+          return;
+        }
+      }
+      download();
     }, "image/png");
   } else {
     say("حفظ الصور غير متاح في هذا المتصفح.");
@@ -470,7 +502,8 @@ document.getElementById("fontPick").addEventListener("change", function(e){
   document.getElementById("sheet").style.fontFamily = FONT;
   if (lastVerses) run();  // القياس والتطويل يتبعان الخطّ الجديد
 });
-document.getElementById("dlImg").addEventListener("click", saveImage);
+document.getElementById("dlImg").addEventListener("click", function(){ saveImage("download"); });
+document.getElementById("saveImg").addEventListener("click", function(){ saveImage("share"); });
 document.getElementById("copyText2").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
 applySheetColors();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ /* تُقاس الأعرض عند التنفيذ بخط الصفحة نفسه */ });
