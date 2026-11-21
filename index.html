@@ -556,8 +556,8 @@ function buildRichHtml(){
     var spaced = [];
     lastVerses.forEach(function(v){
       if (v.single || lastShape === "one"){
-        spaced.push(stretch(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
-      } else { spaced.push(stretch(v.sadr, th)); spaced.push(stretch(v.ajuz, th)); }
+        spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2) * 0.92, 10));
+      } else { spaced.push(spaceOut(v.sadr, th * 0.92, 10)); spaced.push(spaceOut(v.ajuz, th * 0.92, 10)); }
     });
     window.__spacedPlain = spaced.join("\n\n");
     spaced.forEach(function(ln, i){
@@ -584,7 +584,7 @@ function buildRichHtml(){
 }
 
 // «كلمات متباعدة»: توزيع النقص مسافاتٍ بين الكلمات حتى تتساوى نهايات الأسطر — طريقة رواسي الثانية
-function spaceOut(text, target){
+function spaceOut(text, target, capN){
   var words = text.split(/\s+/).filter(Boolean);
   if (words.length < 2) return stretch(text, target);
   var cur = measure(words.join(" "));
@@ -594,7 +594,8 @@ function spaceOut(text, target){
   var gaps = words.length - 1;
   var total = Math.round(deficit / spaceW);
   if (total < 1) return words.join(" ");
-  if (total > gaps * 6) total = gaps * 6;
+  var cap = (typeof capN === "number") ? capN : 6;
+  if (total > gaps * cap) total = gaps * cap;
   var per = Math.floor(total / gaps), rem = total - per * gaps;
   var out = words[0];
   for (var i = 1; i < words.length; i++){
@@ -610,7 +611,7 @@ function copyRich(){
   if (lastMethod === "spaced" && window.__spacedPlain && navigator.clipboard && navigator.clipboard.writeText){
     // التباعد يُنسخ نصًّا مجرّدًا: المذكرات تسحق فراغات HTML ومسافاته، والنصّ المجرّد يمرّ كما هو — كطريقة رواسي
     navigator.clipboard.writeText(window.__spacedPlain).then(function(){
-      say("نُسخ النصّ متباعدًا — سطر وفراغ وسطر، ونهايات الأسطر مستوية بتمديد الحروف.");
+      say("نُسخ النصّ متباعدًا — سطر وفراغ وسطر، ونهايات متقاربة بلا التفاف.");
     }, function(){ say("تعذّر النسخ."); });
     return;
   }
