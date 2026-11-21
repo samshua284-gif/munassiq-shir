@@ -516,7 +516,7 @@ document.getElementById("fontPick").addEventListener("change", function(e){
   document.getElementById("sheet").style.fontFamily = FONT;
   if (lastVerses) run();  // القياس والتطويل يتبعان الخطّ الجديد
 });
-document.getElementById("saveImg").addEventListener("click", function(){ saveImage("share"); });
+document.getElementById("saveImg").addEventListener("click", function(){ saveImage("download"); });
 document.getElementById("copyText2").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
 applySheetColors();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ /* تُقاس الأعرض عند التنفيذ بخط الصفحة نفسه */ });
