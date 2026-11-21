@@ -41,7 +41,11 @@
   #sheet{background:#fdfaf2;color:#1c1a15;border-radius:12px;padding:34px 30px 28px;
     box-shadow:0 8px 30px rgba(0,0,0,.45);color-scheme:only light;
     font-family:"Amiri","Traditional Arabic",serif}
-  #sheetBar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}
+  .sheet-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .sheet-tools button{font-size:15.5px;padding:8px 18px}
+  .tool-ghost{background:transparent;border:1.5px solid currentColor;color:inherit;
+    border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700}
+  .empty-note{text-align:center;opacity:.45;margin:30px 0;font-size:18px}
   .swatches{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
   .sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
   .sw.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
@@ -148,15 +152,14 @@
     <div id="msg"></div>
   </section>
 
-  <div id="sheetBar" hidden>
-    <button id="dlImg">تحميل القصيدة صورةً</button>
-    <button class="ghost" id="copyText2">نسخ النص المنسّق</button>
-  </div>
-
-  <section id="sheet" hidden>
+  <section id="sheet">
+    <div class="sheet-tools">
+      <button id="dlImg">تحميل الصورة</button>
+      <button class="tool-ghost" id="copyText2">نسخ النص</button>
+    </div>
     <p class="ptitle" id="outTitle"></p>
     <p class="ppoet" id="outPoet"></p>
-    <div id="outBody"></div>
+    <div id="outBody"><p class="empty-note">ستظهر قصيدتك المنسّقة هنا بعد ضغط «تنفيذ التنسيق»…</p></div>
   </section>
 </main>
 <footer>
@@ -323,8 +326,6 @@ function run(){
   var poet  = document.getElementById("poetName").value.trim();
   document.getElementById("outTitle").textContent = title;
   document.getElementById("outPoet").textContent  = poet ? "شعر: " + poet : "";
-  document.getElementById("sheet").hidden = false;
-  document.getElementById("sheetBar").hidden = false;
   applySheetColors();
 
   lastPlain = (title ? title + "\n" : "") + plainLines.join("\n") + (poet ? "\n— " + poet : "");
@@ -467,14 +468,14 @@ document.getElementById("inkCustom").addEventListener("input", function(e){ INK 
 document.getElementById("fontPick").addEventListener("change", function(e){
   FONT = e.target.value;
   document.getElementById("sheet").style.fontFamily = FONT;
-  if (!document.getElementById("sheet").hidden) run();  // القياس والتطويل يتبعان الخطّ الجديد
+  if (lastVerses) run();  // القياس والتطويل يتبعان الخطّ الجديد
 });
 document.getElementById("dlImg").addEventListener("click", saveImage);
 document.getElementById("copyText2").addEventListener("click", function(){ copyOf(function(){ return lastPlain; }, "النص المنسّق"); });
 applySheetColors();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ /* تُقاس الأعرض عند التنفيذ بخط الصفحة نفسه */ });
 if ("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js").catch(function(){});
+  navigator.serviceWorker.register("sw.js").then(function(r){ if (r.update) r.update(); }).catch(function(){});
 }
 </script>
 </body>

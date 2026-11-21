@@ -1,5 +1,5 @@
 // عامل خدمة بسيط: يجعل المنسّق يعمل بلا إنترنت بعد أول فتح
-var CACHE = "munassiq-v5";
+var CACHE = "munassiq-v6";
 var ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", function(e){
@@ -20,6 +20,17 @@ self.addEventListener("activate", function(e){
 
 self.addEventListener("fetch", function(e){
   if (e.request.method !== "GET") return;
+  // الصفحة نفسها: الشبكة أولاً حتى يصل كل إصدار جديد فوراً، والذاكرة احتياطاً عند غياب الاتصال
+  if (e.request.mode === "navigate"){
+    e.respondWith(
+      fetch(e.request).then(function(res){
+        var copy = res.clone();
+        caches.open(CACHE).then(function(c){ c.put("./index.html", copy); });
+        return res;
+      }).catch(function(){ return caches.match("./index.html"); })
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(function(hit){
       return hit || fetch(e.request).then(function(res){
