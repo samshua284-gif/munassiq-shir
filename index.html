@@ -556,8 +556,8 @@ function buildRichHtml(){
     var spaced = [];
     lastVerses.forEach(function(v){
       if (v.single || lastShape === "one"){
-        spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
-      } else { spaced.push(spaceOut(v.sadr, th)); spaced.push(spaceOut(v.ajuz, th)); }
+        spaced.push(stretch(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
+      } else { spaced.push(stretch(v.sadr, th)); spaced.push(stretch(v.ajuz, th)); }
     });
     window.__spacedPlain = spaced.join("\n\n");
     spaced.forEach(function(ln, i){
@@ -610,7 +610,7 @@ function copyRich(){
   if (lastMethod === "spaced" && window.__spacedPlain && navigator.clipboard && navigator.clipboard.writeText){
     // التباعد يُنسخ نصًّا مجرّدًا: المذكرات تسحق فراغات HTML ومسافاته، والنصّ المجرّد يمرّ كما هو — كطريقة رواسي
     navigator.clipboard.writeText(window.__spacedPlain).then(function(){
-      say("نُسخ النصّ متباعدًا كما تراه — سطر وفراغ وسطر، بنهايات متساوية.");
+      say("نُسخ النصّ متباعدًا — سطر وفراغ وسطر، ونهايات الأسطر مستوية بتمديد الحروف.");
     }, function(){ say("تعذّر النسخ."); });
     return;
   }
