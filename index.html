@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0f1419">
+<meta name="color-scheme" content="only light">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>منسّق الشعر — تناسق أفقي وعمودي للأبيات</title>
@@ -14,6 +15,7 @@
     --bg:#0f1419; --panel:#171e26; --panel2:#1d2631; --line:#2c3947;
     --ink:#e8e2d4; --muted:#9aa7b4; --gold:#c9a227; --gold2:#e6c65c;
   }
+  html{color-scheme:only light}
   *{box-sizing:border-box}
   html,body{overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -289,6 +291,7 @@ function run(){
   }
   var body = document.getElementById("outBody");
   var plainLines = [];
+  var chosenPx = px;   // حجم الخط كما اختاره الشاعر قبل أي تصغير للملاءمة
 
   function buildAt(p){
     setMeasureFont(p);
@@ -361,7 +364,10 @@ function run(){
   lastPlain = (title ? title + "\n" : "") + plainLines.join("\n") + (poet ? "\n— " + poet : "");
   lastHtml  = document.getElementById("sheet").outerHTML;
   lastVerses = verses; lastShape = shape; lastMethod = method;
-  say("تمّ التنسيق: " + verses.length + " بيتاً بعرضٍ واحد.");
+  if (px < chosenPx)
+    say("تمّ التنسيق: " + verses.length + " بيتاً — صُغّر الخط على الشاشة ليستوي داخلها، وسيظهر بحجمك المختار (" + chosenPx + ") كاملاً في الصورة المحفوظة.");
+  else
+    say("تمّ التنسيق: " + verses.length + " بيتاً بعرضٍ واحد.");
 }
 
 function say(t){ document.getElementById("msg").textContent = t; }
@@ -372,8 +378,8 @@ function saveImage(MODE){
   if (!lastVerses){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
   var title = document.getElementById("poemTitle").value.trim();
   var poet  = document.getElementById("poetName").value.trim();
-  var W = 1080, pad = 72, gap = 44;
-  var px = 46;
+  var pad = 72, gap = 44;
+  var px = parseInt(document.getElementById("fontSize").value, 10) * 2;  // حجم الخط المختار نفسه، بمقياس الصورة
   function targets(){
     var th = 0, tf = 0;
     lastVerses.forEach(function(v){
@@ -385,8 +391,14 @@ function saveImage(MODE){
   }
   setMeasureFont(px);
   var tg = targets();
-  var colW = (W - pad * 2 - gap) / 2;
-  while (tg.half > colW && px > 16){ px -= 2; setMeasureFont(px); tg = targets(); }
+  // عرض الصورة يتّسع لحجم الخط المختار بدل تصغير الخط لحجمٍ ثابت — وسقف أمانٍ أخير عند 2600
+  function neededW(){
+    var twoW = Math.max(gap + tg.half * 2, tg.full);
+    var oneW = Math.max(tg.full, tg.half * 2);
+    return Math.ceil(pad * 2 + (lastShape === "two" ? twoW : oneW));
+  }
+  var W = neededW();
+  while (W > 2600 && px > 16){ px -= 2; setMeasureFont(px); tg = targets(); W = neededW(); }
   var lh = Math.round(px * 2.05);
   var headH = (title ? 92 : 8) + (poet ? 62 : 0) + 26;
   var H = pad + headH + lastVerses.length * lh + 84;
@@ -485,6 +497,7 @@ function copyOf(getter, label){
 document.getElementById("run").addEventListener("click", run);
 document.getElementById("fontSize").addEventListener("input", function(e){
   document.getElementById("fsVal").textContent = e.target.value;
+  if (lastVerses) run();   // الحجم يتحرك مع المؤشر مباشرة إن كانت القصيدة منسّقة
 });
 
 // ألوان وخطّ القصيدة المستخرجة
