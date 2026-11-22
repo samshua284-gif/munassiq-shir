@@ -438,15 +438,24 @@ function saveImage(MODE){
   // شكل «قصيرة»: نصفا القصيدة جنبًا إلى جنب فينصف الطول وتقترب الصورة من مقاس الشاشة
   var wide = (document.getElementById("imgLayout") || {}).value === "wide" && lastVerses.length > 1;
   var contentW = W - pad * 2;
-  var splitIdx = wide ? Math.ceil(lastVerses.length / 2) : lastVerses.length;
+  // قصيدة أُدخلت شطرًا في كل سطر: في الشكل القصير تُزاوَج الأشطر أبياتًا (الصدر وبجانبه العجز) قبل تقسيم القصيدة نصفين
+  var pairMode = wide && lastMethod !== "spaced" && lastVerses.every(function(v){ return !!v.single; });
+  var verses = lastVerses;
+  if (pairMode){
+    verses = [];
+    for (var pi = 0; pi < lastVerses.length; pi += 2)
+      verses.push({ sadr: lastVerses[pi].single, ajuz: lastVerses[pi + 1] ? lastVerses[pi + 1].single : "" });
+    contentW = Math.max(contentW, gap + tg.half * 2);
+  }
+  var splitIdx = wide ? Math.ceil(verses.length / 2) : verses.length;
   function blockLines(list){
     if (lastMethod === "spaced")
       return list.reduce(function(n, v){ return n + (v.single ? 1 : 2); }, 0);
     return list.length;
   }
   var drawLines = wide
-    ? Math.max(blockLines(lastVerses.slice(0, splitIdx)), blockLines(lastVerses.slice(splitIdx)))
-    : blockLines(lastVerses);
+    ? Math.max(blockLines(verses.slice(0, splitIdx)), blockLines(verses.slice(splitIdx)))
+    : blockLines(verses);
   if (wide) W = pad * 2 + 56 + contentW * 2;
   var H = pad + headH + drawLines * (lastMethod === "spaced" ? Math.round(lh * 1.9) : lh) + 84;
 
@@ -492,7 +501,7 @@ function saveImage(MODE){
         });
       });
     } else list.forEach(function(v){
-      if (v.single || lastShape === "one"){
+      if (v.single || (!pairMode && lastShape === "one")){
         var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
         var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
         ctx.textAlign = "center";
@@ -509,10 +518,10 @@ function saveImage(MODE){
     });
   }
   if (wide){
-    drawVerses(lastVerses.slice(0, splitIdx), W - pad - contentW, contentW, y);
-    drawVerses(lastVerses.slice(splitIdx), pad, contentW, y);
+    drawVerses(verses.slice(0, splitIdx), W - pad - contentW, contentW, y);
+    drawVerses(verses.slice(splitIdx), pad, contentW, y);
   } else {
-    drawVerses(lastVerses, pad, W - pad * 2, y);
+    drawVerses(verses, pad, W - pad * 2, y);
   }
 
   ctx.font = Math.round(px * 0.5) + "px " + FONT;
