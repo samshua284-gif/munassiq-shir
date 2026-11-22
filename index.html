@@ -170,11 +170,6 @@
   <section id="sheet">
     <div class="sheet-tools">
       <div class="grp">
-        <label for="imgLayout">شكل الصورة</label>
-        <select id="imgLayout">
-          <option value="tall" selected>طويلة (عمود واحد)</option>
-          <option value="wide">قصيرة (نصفان جنبًا إلى جنب)</option>
-        </select>
         <button id="saveImg">حفظ الصورة</button>
       </div>
       <button class="tool-ghost" id="copyText2">نسخ النص</button>
@@ -435,28 +430,9 @@ function saveImage(MODE){
   while (W > 2600 && px > 16){ px -= 2; setMeasureFont(px); tg = targets(); W = neededW(); }
   var lh = Math.round(px * 2.05);
   var headH = (title ? 92 : 8) + (poet ? 62 : 0) + 26;
-  // شكل «قصيرة»: نصفا القصيدة جنبًا إلى جنب فينصف الطول وتقترب الصورة من مقاس الشاشة
-  var wide = (document.getElementById("imgLayout") || {}).value === "wide" && lastVerses.length > 1;
-  var contentW = W - pad * 2;
-  // قصيدة أُدخلت شطرًا في كل سطر: في الشكل القصير تُزاوَج الأشطر أبياتًا (الصدر وبجانبه العجز) قبل تقسيم القصيدة نصفين
-  var pairMode = wide && lastVerses.every(function(v){ return !!v.single; });
-  var verses = lastVerses;
-  if (pairMode){
-    verses = [];
-    for (var pi = 0; pi < lastVerses.length; pi += 2)
-      verses.push({ sadr: lastVerses[pi].single, ajuz: lastVerses[pi + 1] ? lastVerses[pi + 1].single : "" });
-    contentW = Math.max(contentW, gap + tg.half * 2);
-  }
-  var splitIdx = wide ? Math.ceil(verses.length / 2) : verses.length;
-  function blockLines(list){
-    if (lastMethod === "spaced")
-      return list.reduce(function(n, v){ return n + (v.single ? 1 : (pairMode ? 1 : 2)); }, 0);
-    return list.length;
-  }
-  var drawLines = wide
-    ? Math.max(blockLines(verses.slice(0, splitIdx)), blockLines(verses.slice(splitIdx)))
-    : blockLines(verses);
-  if (wide) W = pad * 2 + 56 + contentW * 2;
+  var drawLines = lastVerses.length;
+  if (lastMethod === "spaced")
+    drawLines = lastVerses.reduce(function(n, v){ return n + (v.single ? 1 : 2); }, 0);
   var H = pad + headH + drawLines * (lastMethod === "spaced" ? Math.round(lh * 1.9) : lh) + 84;
 
   function drawImage(){
@@ -488,50 +464,32 @@ function saveImage(MODE){
   y += 26 + lh * 0.72;
 
   ctx.font = px + "px " + FONT;
-  function drawVerses(list, rx, rw, y0){
-    var yy = y0;
-    if (lastMethod === "spaced"){
-      var spT = lastVerses.some(function(v){ return !v.single; }) ? tg.half : tg.full;
-      ctx.textAlign = "right";
-      list.forEach(function(v){
-        if (pairMode && !v.single){
-          // بيت مزاوَج: الصدر مباعَدًا يمينًا والعجز مباعَدًا يسارًا في الصف نفسه
-          ctx.textAlign = "right";
-          ctx.fillText(spaceOut(v.sadr, tg.half), rx + rw, yy);
-          ctx.textAlign = "left";
-          ctx.fillText(spaceOut(v.ajuz, tg.half), rx, yy);
-          yy += Math.round(lh * 1.9);
-          return;
-        }
-        var ls = v.single ? [v.single] : [v.sadr, v.ajuz];
-        ls.forEach(function(ln){
-          ctx.fillText(spaceOut(ln, spT), rx + rw, yy);
-          yy += Math.round(lh * 1.9);
-        });
+  if (lastMethod === "spaced"){
+    var spT = lastVerses.some(function(v){ return !v.single; }) ? tg.half : tg.full;
+    ctx.textAlign = "right";
+    lastVerses.forEach(function(v){
+      var ls = v.single ? [v.single] : [v.sadr, v.ajuz];
+      ls.forEach(function(ln){
+        ctx.fillText(spaceOut(ln, spT), W - pad, y);
+        y += Math.round(lh * 1.9);
       });
-    } else list.forEach(function(v){
-      if (v.single || (!pairMode && lastShape === "one")){
-        var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
-        var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
-        ctx.textAlign = "center";
-        ctx.fillText(out, rx + rw / 2, yy);
-      } else {
-        var s = (lastMethod === "tatweel") ? stretch(v.sadr, tg.half) : v.sadr;
-        var a = (lastMethod === "tatweel") ? stretch(v.ajuz, tg.half) : v.ajuz;
-        ctx.textAlign = "right";  // الصدر: حافته اليمنى على حافة المنطقة
-        ctx.fillText(s, rx + rw, yy);
-        ctx.textAlign = "left";   // العجز: حافته اليسرى على الحافة المقابلة
-        ctx.fillText(a, rx, yy);
-      }
-      yy += lh;
     });
-  }
-  if (wide){
-    drawVerses(verses.slice(0, splitIdx), W - pad - contentW, contentW, y);
-    drawVerses(verses.slice(splitIdx), pad, contentW, y);
-  } else {
-    drawVerses(verses, pad, W - pad * 2, y);
-  }
+  } else lastVerses.forEach(function(v){
+    if (v.single || lastShape === "one"){
+      var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
+      var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
+      ctx.textAlign = "center";
+      ctx.fillText(out, W / 2, y);
+    } else {
+      var s = (lastMethod === "tatweel") ? stretch(v.sadr, tg.half) : v.sadr;
+      var a = (lastMethod === "tatweel") ? stretch(v.ajuz, tg.half) : v.ajuz;
+      ctx.textAlign = "right";  // الصدر: حافته اليمنى على حافة الصفحة
+      ctx.fillText(s, W - pad, y);
+      ctx.textAlign = "left";   // العجز: حافته اليسرى على الحافة المقابلة — وبالتطويل تتقابل الحافتان الداخليتان أيضاً
+      ctx.fillText(a, pad, y);
+    }
+    y += lh;
+  });
 
   ctx.font = Math.round(px * 0.5) + "px " + FONT;
   ctx.fillStyle = blend(INK, BG, 0.5); ctx.textAlign = "center";
@@ -598,8 +556,8 @@ function buildRichHtml(){
     var spaced = [];
     lastVerses.forEach(function(v){
       if (v.single || lastShape === "one"){
-        spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2) * 0.92, 10));
-      } else { spaced.push(spaceOut(v.sadr, th * 0.92, 10)); spaced.push(spaceOut(v.ajuz, th * 0.92, 10)); }
+        spaced.push(spaceOut(v.single ? v.single : (v.sadr + "  " + v.ajuz), Math.max(tf, th * 2)));
+      } else { spaced.push(spaceOut(v.sadr, th)); spaced.push(spaceOut(v.ajuz, th)); }
     });
     window.__spacedPlain = spaced.join("\n\n");
     spaced.forEach(function(ln, i){
@@ -626,7 +584,7 @@ function buildRichHtml(){
 }
 
 // «كلمات متباعدة»: توزيع النقص مسافاتٍ بين الكلمات حتى تتساوى نهايات الأسطر — طريقة رواسي الثانية
-function spaceOut(text, target, capN){
+function spaceOut(text, target){
   var words = text.split(/\s+/).filter(Boolean);
   if (words.length < 2) return stretch(text, target);
   var cur = measure(words.join(" "));
@@ -636,8 +594,7 @@ function spaceOut(text, target, capN){
   var gaps = words.length - 1;
   var total = Math.round(deficit / spaceW);
   if (total < 1) return words.join(" ");
-  var cap = (typeof capN === "number") ? capN : 6;
-  if (total > gaps * cap) total = gaps * cap;
+  if (total > gaps * 6) total = gaps * 6;
   var per = Math.floor(total / gaps), rem = total - per * gaps;
   var out = words[0];
   for (var i = 1; i < words.length; i++){
@@ -649,14 +606,6 @@ function spaceOut(text, target, capN){
 
 function copyRich(){
   if (!lastVerses){ say("نسّق القصيدة أولاً بزر «تنفيذ التنسيق»."); return; }
-  buildRichHtml();  // يملأ __spacedPlain عند طريقة التباعد
-  if (lastMethod === "spaced" && window.__spacedPlain && navigator.clipboard && navigator.clipboard.writeText){
-    // التباعد يُنسخ نصًّا مجرّدًا: المذكرات تسحق فراغات HTML ومسافاته، والنصّ المجرّد يمرّ كما هو — كطريقة رواسي
-    navigator.clipboard.writeText(window.__spacedPlain).then(function(){
-      say("نُسخ النصّ متباعدًا — سطر وفراغ وسطر، ونهايات متقاربة بلا التفاف.");
-    }, function(){ say("تعذّر النسخ."); });
-    return;
-  }
   function plainFallback(){
     var txt = window.__spacedPlain || lastPlain;
     if (navigator.clipboard && navigator.clipboard.writeText)
