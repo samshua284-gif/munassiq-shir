@@ -170,6 +170,11 @@
   <section id="sheet">
     <div class="sheet-tools">
       <div class="grp">
+        <label for="imgLayout">شكل الصورة</label>
+        <select id="imgLayout">
+          <option value="tall" selected>طويلة (عمود واحد)</option>
+          <option value="wide">قصيرة (نصفان جنبًا إلى جنب)</option>
+        </select>
         <button id="saveImg">حفظ الصورة</button>
       </div>
       <button class="tool-ghost" id="copyText2">نسخ النص</button>
@@ -430,9 +435,19 @@ function saveImage(MODE){
   while (W > 2600 && px > 16){ px -= 2; setMeasureFont(px); tg = targets(); W = neededW(); }
   var lh = Math.round(px * 2.05);
   var headH = (title ? 92 : 8) + (poet ? 62 : 0) + 26;
-  var drawLines = lastVerses.length;
-  if (lastMethod === "spaced")
-    drawLines = lastVerses.reduce(function(n, v){ return n + (v.single ? 1 : 2); }, 0);
+  // شكل «قصيرة»: نصفا القصيدة جنبًا إلى جنب فينصف الطول وتقترب الصورة من مقاس الشاشة
+  var wide = (document.getElementById("imgLayout") || {}).value === "wide" && lastVerses.length > 1;
+  var contentW = W - pad * 2;
+  var splitIdx = wide ? Math.ceil(lastVerses.length / 2) : lastVerses.length;
+  function blockLines(list){
+    if (lastMethod === "spaced")
+      return list.reduce(function(n, v){ return n + (v.single ? 1 : 2); }, 0);
+    return list.length;
+  }
+  var drawLines = wide
+    ? Math.max(blockLines(lastVerses.slice(0, splitIdx)), blockLines(lastVerses.slice(splitIdx)))
+    : blockLines(lastVerses);
+  if (wide) W = pad * 2 + 56 + contentW * 2;
   var H = pad + headH + drawLines * (lastMethod === "spaced" ? Math.round(lh * 1.9) : lh) + 84;
 
   function drawImage(){
@@ -464,32 +479,41 @@ function saveImage(MODE){
   y += 26 + lh * 0.72;
 
   ctx.font = px + "px " + FONT;
-  if (lastMethod === "spaced"){
-    var spT = lastVerses.some(function(v){ return !v.single; }) ? tg.half : tg.full;
-    ctx.textAlign = "right";
-    lastVerses.forEach(function(v){
-      var ls = v.single ? [v.single] : [v.sadr, v.ajuz];
-      ls.forEach(function(ln){
-        ctx.fillText(spaceOut(ln, spT), W - pad, y);
-        y += Math.round(lh * 1.9);
+  function drawVerses(list, rx, rw, y0){
+    var yy = y0;
+    if (lastMethod === "spaced"){
+      var spT = lastVerses.some(function(v){ return !v.single; }) ? tg.half : tg.full;
+      ctx.textAlign = "right";
+      list.forEach(function(v){
+        var ls = v.single ? [v.single] : [v.sadr, v.ajuz];
+        ls.forEach(function(ln){
+          ctx.fillText(spaceOut(ln, spT), rx + rw, yy);
+          yy += Math.round(lh * 1.9);
+        });
       });
+    } else list.forEach(function(v){
+      if (v.single || lastShape === "one"){
+        var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
+        var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
+        ctx.textAlign = "center";
+        ctx.fillText(out, rx + rw / 2, yy);
+      } else {
+        var s = (lastMethod === "tatweel") ? stretch(v.sadr, tg.half) : v.sadr;
+        var a = (lastMethod === "tatweel") ? stretch(v.ajuz, tg.half) : v.ajuz;
+        ctx.textAlign = "right";  // الصدر: حافته اليمنى على حافة المنطقة
+        ctx.fillText(s, rx + rw, yy);
+        ctx.textAlign = "left";   // العجز: حافته اليسرى على الحافة المقابلة
+        ctx.fillText(a, rx, yy);
+      }
+      yy += lh;
     });
-  } else lastVerses.forEach(function(v){
-    if (v.single || lastShape === "one"){
-      var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
-      var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
-      ctx.textAlign = "center";
-      ctx.fillText(out, W / 2, y);
-    } else {
-      var s = (lastMethod === "tatweel") ? stretch(v.sadr, tg.half) : v.sadr;
-      var a = (lastMethod === "tatweel") ? stretch(v.ajuz, tg.half) : v.ajuz;
-      ctx.textAlign = "right";  // الصدر: حافته اليمنى على حافة الصفحة
-      ctx.fillText(s, W - pad, y);
-      ctx.textAlign = "left";   // العجز: حافته اليسرى على الحافة المقابلة — وبالتطويل تتقابل الحافتان الداخليتان أيضاً
-      ctx.fillText(a, pad, y);
-    }
-    y += lh;
-  });
+  }
+  if (wide){
+    drawVerses(lastVerses.slice(0, splitIdx), W - pad - contentW, contentW, y);
+    drawVerses(lastVerses.slice(splitIdx), pad, contentW, y);
+  } else {
+    drawVerses(lastVerses, pad, W - pad * 2, y);
+  }
 
   ctx.font = Math.round(px * 0.5) + "px " + FONT;
   ctx.fillStyle = blend(INK, BG, 0.5); ctx.textAlign = "center";
