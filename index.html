@@ -142,6 +142,7 @@
         <label for="padMode">حشو عمود النسخ</label>
         <select id="padMode">
           <option value="unicode" selected>مسافات يونيكود ثابتة</option>
+          <option value="unifine">مسافات يونيكود دقيقة — للمحاذاة</option>
           <option value="ascii">مسافات عادية</option>
         </select>
       </div>
@@ -751,14 +752,24 @@ function measureIn(text, px, fam){
 // عن خطٍّ ما انهارت عروضها إلى عرضٍ واحد فصار الحشو كالعادي
 // تمامًا — تدهورٌ آمن لا كسر. والوضع العادي باقٍ خيارًا كما هو.
 var UNICODE_SPACES = ["\u2003","\u2002","\u2007","\u2004","\u2005","\u2006","\u2009","\u200A","\u00A0"," "];
-function padUnicodeOn(){
+// 3.16 (بطلب Hilal — محاولة أخيرة للمحاذاة بعد نجاح المتباعدة
+// ميدانيًا وفشل مدى المسافات الكبيرة): مجموعة «الدقيقة» تستبعد
+// مسافات EM وEN والرقمية الكبيرة، ويُركَّب الحشو من وحدات صغيرة
+// كثيرة (أعرضها ثلث إم) فتتوزّع أخطاء رسم خطّ المستقبِل على
+// وحدات كثيرة بدل أن يحملها مدًى واحد من وحدات عملاقة.
+var FINE_SPACES = ["\u2004","\u2005","\u00A0"," ","\u2009","\u2006","\u200A"];
+function padModeValue(){
   var el = document.getElementById("padMode");
-  return !el || el.value !== "ascii";
+  return el ? el.value : "unicode";
+}
+function padUnicodeOn(){
+  return padModeValue() !== "ascii";
 }
 function unicodePadFor(deficit, widthOf){
   if (deficit <= 0) return "";
+  var cands = padModeValue() === "unifine" ? FINE_SPACES : UNICODE_SPACES;
   var ws = [];
-  UNICODE_SPACES.forEach(function(c){
+  cands.forEach(function(c){
     var w = widthOf(c);
     if (w > 0.01 && !ws.some(function(x){ return Math.abs(x.w - w) < 0.01; }))
       ws.push({ c: c, w: w });
