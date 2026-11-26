@@ -139,6 +139,13 @@
         </select>
       </div>
       <div>
+        <label for="padMode">حشو عمود النسخ</label>
+        <select id="padMode">
+          <option value="unicode" selected>مسافات يونيكود ثابتة</option>
+          <option value="ascii">مسافات عادية</option>
+        </select>
+      </div>
+      <div>
         <label for="fontSize">حجم الخط: <span id="fsVal">24</span></label>
         <input type="range" id="fontSize" min="16" max="40" value="24">
       </div>
@@ -737,9 +744,41 @@ function measureIn(text, px, fam){
   measureCtx.font = saved;
   return w;
 }
+// 3.15 (بطلب Hilal: «استعمل unicode في منسقنا»): حشوٌ بمسافات
+// يونيكود ثابتة العرض — تُقاس عروضها حيًّا في خطّ القياس نفسه
+// وتُركَّب من الأعرض إلى الأدقّ حتى يطابق الحشو النقصَ المقيس
+// ببقايا أصغر من وحدة المسافة العادية. وإن غابت هذه المسافات
+// عن خطٍّ ما انهارت عروضها إلى عرضٍ واحد فصار الحشو كالعادي
+// تمامًا — تدهورٌ آمن لا كسر. والوضع العادي باقٍ خيارًا كما هو.
+var UNICODE_SPACES = ["\u2003","\u2002","\u2007","\u2004","\u2005","\u2006","\u2009","\u200A","\u00A0"," "];
+function padUnicodeOn(){
+  var el = document.getElementById("padMode");
+  return !el || el.value !== "ascii";
+}
+function unicodePadFor(deficit, widthOf){
+  if (deficit <= 0) return "";
+  var ws = [];
+  UNICODE_SPACES.forEach(function(c){
+    var w = widthOf(c);
+    if (w > 0.01 && !ws.some(function(x){ return Math.abs(x.w - w) < 0.01; }))
+      ws.push({ c: c, w: w });
+  });
+  ws.sort(function(a, b){ return b.w - a.w; });
+  if (!ws.length) return "";
+  var out = "", rem = deficit;
+  ws.forEach(function(x){
+    while (rem >= x.w - 1e-9){ out += x.c; rem -= x.w; }
+  });
+  var smallest = ws[ws.length - 1];
+  if (rem > smallest.w / 2){ out += smallest.c; rem -= smallest.w; }
+  return out;
+}
+
 function padToFont(text, target, px, fam){
   var deficit = target - measureIn(text, px, fam);
   if (deficit <= 0) return text;
+  if (padUnicodeOn())
+    return text + unicodePadFor(deficit, function(c){ return measureIn(c, px, fam); });
   var n = Math.round(deficit / (measureIn(" ", px, fam) || 1));
   return n > 0 ? text + Array(n + 1).join(" ") : text;
 }
@@ -748,6 +787,8 @@ function padToFont(text, target, px, fam){
 function padTo(text, target){
   var deficit = target - measure(text);
   if (deficit <= 0) return text;
+  if (padUnicodeOn())
+    return text + unicodePadFor(deficit, function(c){ return measure(c); });
   var n = Math.round(deficit / (measure(" ") || 1));
   return n > 0 ? text + Array(n + 1).join(" ") : text;
 }
@@ -765,10 +806,14 @@ function spaceOut(text, target){
   if (total < 1) return words.join(" ");
   if (total > gaps * 6) total = gaps * 6;
   var per = Math.floor(total / gaps), rem = total - per * gaps;
+  var uni = padUnicodeOn();
   var out = words[0];
   for (var i = 1; i < words.length; i++){
     var n = 1 + per + (i <= rem ? 1 : 0);
-    out += Array(n + 1).join(" ") + words[i];
+    // 3.15: فراغات المتباعدة تُملأ بمسافات يونيكود بالعرض نفسه
+    // المقصود (n × عرض المسافة) حين يكون وضع اليونيكود مفعّلًا
+    out += (uni ? unicodePadFor(n * spaceW, function(c){ return measure(c); })
+                : Array(n + 1).join(" ")) + words[i];
   }
   return out;
 }
@@ -840,6 +885,7 @@ document.getElementById("repoCopy").addEventListener("click", function(){
     navigator.clipboard.writeText(url).then(function(){ document.getElementById("repoMsg").textContent = "نُسخ الرابط — الصقه أين تشاء."; });
 });
 document.getElementById("copyText2").addEventListener("click", copyRich);
+document.getElementById("padMode").addEventListener("change", function(){ if (lastVerses) run(); });
 // زرّ حذف النص (3.8، بطلب Hilal): فوق مربع القصيدة في آخر الجانب
 // الأيسر. ضغطة أولى تُسلّح («متأكد؟») وثانية تمسح — حمايةً لقصيدة
 // مكتوبة من ضغطة عابرة، لأن غلاف التطبيق لا يعرض حوارات تأكيد أصلية.
