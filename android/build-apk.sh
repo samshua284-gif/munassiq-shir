@@ -44,12 +44,14 @@ ls -la "$AJAR" "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$BT/apksigner"
 cd "$PROJ"
 mkdir -p src/com/hilalsameer/munassiq res/values res/mipmap-mdpi res/mipmap-hdpi res/mipmap-xhdpi res/mipmap-xxhdpi res/mipmap-xxxhdpi assets/www gen classes dex
 cp "$SRC/index.html" "$SRC/manifest.webmanifest" "$SRC/sw.js" "$SRC/icon.svg" assets/www/
+mkdir -p assets/www/fonts
+cp "$SRC"/fonts/*.woff2 assets/www/fonts/
 
 cat > AndroidManifest.xml <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hilalsameer.munassiq"
-    android:versionCode="46" android:versionName="3.18">
+    android:versionCode="47" android:versionName="3.19">
   <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher"

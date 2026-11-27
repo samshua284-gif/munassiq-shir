@@ -1,6 +1,8 @@
 // عامل خدمة بسيط: يجعل المنسّق يعمل بلا إنترنت بعد أول فتح
-var CACHE = "munassiq-v35";
-var ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
+var CACHE = "munassiq-v36";
+var ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg",
+  "./fonts/amiri-arabic-400-normal.woff2", "./fonts/amiri-arabic-700-normal.woff2",
+  "./fonts/amiri-latin-400-normal.woff2", "./fonts/amiri-latin-700-normal.woff2"];
 
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }));
