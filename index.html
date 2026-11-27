@@ -287,6 +287,18 @@ function stretch(text, target){
 var lastPlain = "";   // النص المنسق للنسخ
 var lastVerses = null, lastShape = "two", lastMethod = "spaced";  // آخر قصيدة منسّقة — لرسم الصورة
 
+// 3.21 (بأمر Hilal بعد تشخيصه بنفسه): النص الآتي من تطبيقات المفكرة يحمل
+// أحرفًا خفية (اتجاه/عرض صفري/علامات تحكّم) وأشكالًا تقديمية للحروف،
+// فتكسر القياس والمدّ ولو كان النص سليمًا ظاهرًا — والنص النظيف (واتساب)
+// يعمل. التنظيف هنا عند التنسيق وقبل أي قياس: تطبيع NFKC يطوي الأشكال
+// التقديمية إلى حروف قياسية، ثم تُحذف الأحرف الخفية. النص النظيف يخرج
+// كما دخل حرفيًا (مُختبَر على قصائد Hilal نفسها).
+var INVISIBLES = /[\u200B-\u200D\uFEFF\u00AD\u200E\u200F\u202A-\u202E\u2066-\u2069\u061C\u2060]/g;
+function cleanText(t){
+  var out = t.normalize ? t.normalize("NFKC") : t;
+  return out.replace(INVISIBLES, "");
+}
+
 function run(){
   var sep = document.getElementById("sep").value || "=";
   var shape = document.getElementById("shape").value;
@@ -294,7 +306,7 @@ function run(){
   var px = parseInt(document.getElementById("fontSize").value, 10);
   setMeasureFont(px);
 
-  var lines = document.getElementById("poemText").value
+  var lines = cleanText(document.getElementById("poemText").value)
     .split("\n").map(function(l){ return l.trim(); })
     .filter(function(l){ return l.length > 0; });
 
