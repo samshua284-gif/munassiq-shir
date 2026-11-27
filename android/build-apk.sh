@@ -43,15 +43,17 @@ ls -la "$AJAR" "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$BT/apksigner"
 # 3) هيكل المشروع
 cd "$PROJ"
 mkdir -p src/com/hilalsameer/munassiq res/values res/mipmap-mdpi res/mipmap-hdpi res/mipmap-xhdpi res/mipmap-xxhdpi res/mipmap-xxxhdpi assets/www gen classes dex
+# 3.20: تُفرَّغ www أولًا حتى لا تتسرّب ملفات بناء سابق (خطوط 3.19 المنفصلة
+# بقيت في شجرة البناء ودخلت حزمة 3.20 الأولى رغم حذف سطور نسخها)
+rm -rf assets/www && mkdir -p assets/www
 cp "$SRC/index.html" "$SRC/manifest.webmanifest" "$SRC/sw.js" "$SRC/icon.svg" assets/www/
-mkdir -p assets/www/fonts
-cp "$SRC"/fonts/*.woff2 assets/www/fonts/
+# 3.20: الخط مدمج داخل index.html نفسها (Base64) — لا ملفات خطوط منفصلة في الحزمة
 
 cat > AndroidManifest.xml <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hilalsameer.munassiq"
-    android:versionCode="47" android:versionName="3.19">
+    android:versionCode="48" android:versionName="3.20">
   <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher"
