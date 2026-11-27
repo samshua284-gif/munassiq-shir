@@ -78,7 +78,12 @@
     .half{padding:1px 2px}
   }
   .half{flex:1;min-width:0;white-space:nowrap;text-align:center;padding:1px 6px}
-  .half.sadr{border-left:1px solid #d8cfb8}
+  .half.sadr{border-left:1px solid #d8cfb8;padding-left:12px}
+  /* 3.17 (Hilal, 2026-11-27): موازنة حول الخط الأوسط — حشوة داخلية
+     متماثلة على جانبي الخط، فلا يلمس أي شطرٍ الخطَّ مهما طال.
+     3.18 (قياس ميداني من لقطته): 22px جعلت الفجوة ~26px والخط أصغر
+     بـ12% — خُفّضت إلى 12px: لا لمس مضمون، وفجوة معتدلة، وخط أكبر. */
+  .half.ajuz{padding-right:12px}
   .verse.single .half{border-left:0}
   footer{text-align:center;color:var(--muted);font-size:13.5px;padding:0 16px 26px;line-height:2}
   .repoCard{max-width:880px;margin:0 auto 28px;padding:14px 14px 9px;text-align:center;
@@ -134,8 +139,8 @@
       <div>
         <label for="method">كيفية التنسيق</label>
         <select id="method">
-          <option value="spaced">كلمات متباعدة — سطر وفراغ وسطر</option>
-          <option value="plain" selected>محاذاة فقط بلا تطويل</option>
+          <option value="spaced" selected>كلمات متباعدة — سطر وفراغ وسطر</option>
+          <option value="tatweel">كلمات ممتدّة — تناسق كامل</option>
         </select>
       </div>
       <div>
@@ -280,7 +285,7 @@ function stretch(text, target){
 }
 
 var lastPlain = "";   // النص المنسق للنسخ
-var lastVerses = null, lastShape = "two", lastMethod = "plain";  // آخر قصيدة منسّقة — لرسم الصورة
+var lastVerses = null, lastShape = "two", lastMethod = "spaced";  // آخر قصيدة منسّقة — لرسم الصورة
 
 function run(){
   var sep = document.getElementById("sep").value || "=";
@@ -369,7 +374,7 @@ function run(){
             ds.style.whiteSpace = "pre";
             ds.textContent = spaceOut(v.sadr, targetHalf);
             var da = document.createElement("div");
-            da.className = "half";
+            da.className = "half ajuz";
             da.style.whiteSpace = "pre";
             da.textContent = spaceOut(v.ajuz, targetHalf);
             row.appendChild(ds); row.appendChild(da);
@@ -419,11 +424,6 @@ function run(){
       });
       return;
     }
-    // 3.13: هدف حشو النصّ المجرّد للعمودين يُقاس بخطّ المفكرات أيضًا
-    var copyTargetHalf = 0;
-    verses.forEach(function(v){
-      if (!v.single) copyTargetHalf = Math.max(copyTargetHalf, measureIn(v.sadr, p, NOTEPAD_FONT), measureIn(v.ajuz, p, NOTEPAD_FONT));
-    });
     verses.forEach(function(v){
       var row = document.createElement("div");
       row.className = "verse";
@@ -431,28 +431,28 @@ function run(){
       row.style.lineHeight = "2";
       if (v.single){
         row.classList.add("single");
-        var only = v.single;
+        var only = (method === "tatweel") ? stretch(v.single, Math.max(targetFull, targetHalf * 2)) : v.single;
         var d = document.createElement("div");
         d.className = "half"; d.textContent = only;
         row.appendChild(d);
         plainLines.push(only);
       } else if (shape === "one"){
         var joined = v.sadr + "  " + v.ajuz;
-        var one = joined;
+        var one = (method === "tatweel") ? stretch(joined, Math.max(targetFull, targetHalf * 2)) : joined;
         row.classList.add("single");
         var d1 = document.createElement("div");
         d1.className = "half"; d1.textContent = one;
         row.appendChild(d1);
         plainLines.push(one);
       } else {
-        var s = v.sadr;
-        var a = v.ajuz;
+        var s = (method === "tatweel") ? stretch(v.sadr, targetHalf) : v.sadr;
+        var a = (method === "tatweel") ? stretch(v.ajuz, targetHalf) : v.ajuz;
         var ds = document.createElement("div");
         ds.className = "half sadr"; ds.textContent = s;
         var da = document.createElement("div");
-        da.className = "half"; da.textContent = a;
+        da.className = "half ajuz"; da.textContent = a;
         row.appendChild(ds); row.appendChild(da);
-        plainLines.push(padToFont(s, copyTargetHalf, p, NOTEPAD_FONT) + "   " + a);   // 3.12: حشو الصدر لاحقًا ليصطفّ العجز عمودًا — وبقياس خطّ المفكرات منذ 3.13
+        plainLines.push(s + "   " + a);   // 3.17: عاد التطويل بأمر Hilal وحُذفت «محاذاة فقط» — النسخ يحمل الشطرين الممتدّين كما تراهما العين
       }
       body.appendChild(row);
     });
@@ -598,12 +598,12 @@ function saveImage(MODE){
   } else lastVerses.forEach(function(v){
     if (v.single || lastShape === "one"){
       var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
-      var out = line;
+      var out = (lastMethod === "tatweel") ? stretch(line, Math.max(tg.full, tg.half * 2)) : line;
       ctx.textAlign = "center";
       ctx.fillText(out, W / 2, y);
     } else {
-      var s = v.sadr;
-      var a = v.ajuz;
+      var s = (lastMethod === "tatweel") ? stretch(v.sadr, tg.half) : v.sadr;
+      var a = (lastMethod === "tatweel") ? stretch(v.ajuz, tg.half) : v.ajuz;
       ctx.textAlign = "right";  // الصدر: حافته اليمنى على حافة الصفحة
       ctx.fillText(s, W - pad, y);
       ctx.textAlign = "left";   // العجز: حافته اليسرى على الحافة المقابلة — وبالتطويل تتقابل الحافتان الداخليتان أيضاً
@@ -711,22 +711,21 @@ function buildRichHtml(){
   } else {
     window.__spacedPlain = null;
     if (lastShape === "two"){
-      // 3.9/3.11 جرّبتا جدولًا فنجح العمودان والترتيب، لكن المفكرة
-      // حبست النص في خلايا لا تُنسخ ثانية (3.12). صار كل بيت سطرًا
-      // نصيًا واحدًا: الصدر محشوٌّ بمسافات لاحقة حتى عرض أعرض شطر
-      // ثم العجز — عمودٌ تقريبي في نصٍّ عادي يُحدَّد ويُنسخ كأي نص،
-      // ويبقى العمود الواحد على فقراته كما هو.
+      // 3.17: هذا الفرع صار للتطويل وحده (حُذفت «محاذاة فقط» وبقيت
+      // المتباعدة فرعها). كل بيت سطر نصي واحد: الشطران ممتدّان
+      // بالكشيدة حتى العرض الهدف ثم بينهما فاصل — نصٌّ عادي يُحدَّد
+      // ويُنسخ كأي نص (لا جداول — درس 3.12 باقٍ).
       lastVerses.forEach(function(v){
         if (v.single){
-          out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(v.single) + '</p>';
+          out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(stretch(v.single, Math.max(tf, th * 2))) + '</p>';
         } else {
-          out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap;font-family:' + NOTEPAD_FONT + '">' + escHtml(padTo(v.sadr, th) + "   " + v.ajuz) + '</p>';
+          out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(stretch(v.sadr, th) + "   " + stretch(v.ajuz, th)) + '</p>';
         }
       });
     } else {
       lastVerses.forEach(function(v){
         var line = v.single ? v.single : (v.sadr + "  " + v.ajuz);
-        var t = line;
+        var t = (lastMethod === "tatweel") ? stretch(line, Math.max(tf, th * 2)) : line;
         out += '<p style="margin:0 0 6px;text-align:right;white-space:pre-wrap">' + escHtml(t) + '</p>';
       });
     }
